@@ -2,7 +2,7 @@ const GalionTokenContract = artifacts.require('./GalionToken.sol');
 const ETH = 1e+18;
 const GLN = 1e+18;
 
-contract('GalionTokenContract', function ([owner, contributor1]) {
+contract('GalionToken', function ([owner, contributor1]) {
   let contract;
 
   beforeEach('setup contract for each test', async function () {
@@ -14,7 +14,33 @@ contract('GalionTokenContract', function ([owner, contributor1]) {
       assert.equal(await contract.owner(), owner);
     });
 
-    it.skip('should send company/partners tokens');
+    it('should have 18 decimals', async function () {
+      assert.equal(await contract.decimals(), 18);
+    });
+
+    it('should have "GLN" symbol', async function () {
+      assert.equal(await contract.symbol(), 'GLN');
+    });
+
+    it('should have "Galion Token" name', async function () {
+      assert.equal(await contract.name(), 'Galion Token');
+    });
+
+    it('should have a total supply of 320M tokens (without burns)', async function () {
+      assert.equal(await contract.supplyTotal(), 320 * 1e6 * 1e18);
+    });
+
+    it('should not be tradable at first', async function () {
+      assert.equal(await contract.tradable(), false);
+    });
+
+    it('should send 30% of tokens to company wallet', async function() {
+      assert.equal(
+        (await contract.balanceOf('0x849F14948588d2bDe7a3ff68DE9269b2160483C1')).toNumber(),
+        0.3 * 320 * 1e6 * 1e18
+      );
+    });
+
     it.skip('should vest team tokens');
   });
 
