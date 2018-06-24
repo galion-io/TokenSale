@@ -117,9 +117,11 @@ contract GalionTokenSale is PhaseWhitelist {
     }
 
     // Withdraw all ETH stored on the contract, by sending them to the company address
-    // It shouldn't be needed as ETH is transferred to the owner at each transaction.
     function withdraw() public {
+        // cannot withdraw if the soft cap is not reached
         require(tokenSold >= SOFTCAP);
+        // cannot withdraw if the sale is not over
+        require(phase >= 3);
 
         COMPANY_ADDRESS.transfer(address(this).balance);
     }
