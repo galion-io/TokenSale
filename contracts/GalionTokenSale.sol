@@ -22,6 +22,8 @@ contract GalionTokenSale is PhaseWhitelist {
 
     // soft cap is 26% of total supply
     uint256 public constant SOFTCAP = 83 * (10 ** 6) * (10 ** 18);
+    // presale cap is 50% of total supply
+    uint256 public constant PRESALECAP = 60 * (10 ** 6) * (10 ** 18);
     // hard cap is 60% of total supply
     uint256 public constant HARDCAP = 192 * (10 ** 6) * (10 ** 18);
 
@@ -72,9 +74,13 @@ contract GalionTokenSale is PhaseWhitelist {
 
         // Compute buy price (with bonus applied if presale is in progress)
         uint256 buyPrice = baseBuyPrice;
+        // set the correct cap for the phase
+        uint256 phaseCap = HARDCAP;
+
         if (phase == 0) {
             buyPrice = baseBuyPrice.mul(preSaleBonus).div(100);
             require(msg.value >= 10 ** 18);
+            phaseCap = PRESALECAP;
         }
 
         // individual cap check if current phase is safe mainsale
@@ -92,7 +98,7 @@ contract GalionTokenSale is PhaseWhitelist {
         uint256 futureTokenSold = tokenSold + buyAmount;
 
         // Check for hardcap
-        require(futureTokenSold <= HARDCAP);
+        require(futureTokenSold <= phaseCap);
 
         // Mint token & assign to contributor
         contributed[msg.sender] = contributed[msg.sender].add(msg.value);
