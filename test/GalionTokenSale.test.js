@@ -71,8 +71,18 @@ contract('GalionToken', function ([owner, contributor1]) {
   describe('Presale', async function() {
     it('should allow to add people to the whitelist', async function() {
       await contract.addToWhitelistForPresale([contributor1]);
-      let whitelisted = await contract.checkWhitelistedForPresale(contributor1);
-      assert.equal(whitelisted, true);
+      assert.equal(await contract.checkWhitelistedForPresale(contributor1), true);
+      assert.equal(await contract.whitelistCount(), 1);
+    });
+
+    it('should allow to remove people from the whitelist', async function() {
+      await contract.addToWhitelistForPresale([contributor1]);
+      assert.equal(await contract.checkWhitelistedForPresale(contributor1), true);
+      assert.equal(await contract.whitelistCount(), 1);
+
+      await contract.removeFromWhitelist([contributor1]);
+      assert.equal(await contract.checkWhitelistedForPresale(contributor1), false);
+      assert.equal(await contract.whitelistCount(), 0);
     });
 
     it('should not accept funds from people not whitelisted', async function() {
@@ -119,7 +129,6 @@ contract('GalionToken', function ([owner, contributor1]) {
       assert.equal(contributorBalance.toNumber(), 6000 * GLN)
     });
 
-
     it('should not accept funds from people whitelisted for mainsale but not presale', async function() {
       await contract.addToWhitelistForMainsale([contributor1]);
       await contract.setBuyPrice(5000);
@@ -131,27 +140,49 @@ contract('GalionToken', function ([owner, contributor1]) {
         assert(error.toString().includes('revert'), error.toString());
       }
     });
+
+    it.skip('should not allow to mint more tokens than hardcap');
+    it.skip('should end if hardcap is reached');
+  });
+
+  describe('Safe Mainsale', async function() {
+    it.skip('should not be able to start before individual cap is set');
+    it.skip('should be able to set individual cap & start safe mainsale');
+    it.skip('should not be able to contribute more than individual cap in the first 12 hours');
+    it.skip('should be able to contribute more than individual cap after 12 hours');
+    it.skip('should not allow to mint more tokens than hardcap');
+    it.skip('should end if hardcap is reached');
   });
 
   describe('Mainsale', async function() {
+    it.skip('should not be able to start without waiting the 12 hours of safe mainsale');
     it.skip('should allow to add people to the whitelist');
+    it.skip('should allow to remove people from the whitelist');
+    it.skip('should allow people in the presale whitelist to participate');
+    it.skip('should only last 2 weeks maximum');
     it.skip('should not accept funds from people whitelisted for mainsale as long as mainsale isn\'t open');
+    it.skip('should not allow owner to claim ether on the contract as long as the sale isn\'t finished');
+    it.skip('should not allow to mint more tokens than hardcap');
+    it.skip('should end if hardcap is reached');
+    it.skip('should not be able to activate token if mainsale is not over');
   });
 
-  describe('Softcap', async function() {
-    it.skip('should keep ether on the contract as long as softcap isn\'t reached');
-    it.skip('should allow people to claim refund as long as softcap isn\'t reached');
-    it.skip('should not allow owner to claim ether on the contract as long as softcap isn\'t reached');
+  describe('After TGE is finished', async function() {
+    it.skip('should not accept any contributions anymore');
+    it.skip('should be able to activate token');
+    it.skip('should not allow token transfers if token is not activated');
+    it.skip('should allow token transfers if token is activated');
   });
 
-  describe('Hardcap', async function() {
-    it.skip('should not allow further contributions once hardcap is reached');
+  describe('Softcap & Refund', async function() {
+    it.skip('should not allow people to claim refund if sale is not over');
+    it.skip('should allow people to claim refund after the sale is over, and softcap is not reached');
+    it.skip('should not allow people to claim refund after the sale is over, and softcap is reached');
   });
 
   describe('Vesting', async function() {
-    it.skip('should allow company to transfer tokens right from the start (for bounty, etc)');
-    it.skip('shouldn\'t allow team members to claim vested tokens');
-    it.skip('should allow team members to claim half of their vested tokens after 6 months');
-    it.skip('should allow team members to claim all their vested tokens after 12 months');
+    it.skip('shouldn\'t allow team members to claim vested tokens during the sale');
+    it.skip('shouldn\'t allow team members to claim vested tokens after the sale');
+    it.skip('should allow team members to claim all their vested tokens after 1 year');
   });
 });
