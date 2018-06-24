@@ -68,13 +68,13 @@ contract GalionTokenSale is PhaseWhitelist {
     // - the sender is whitelisted (for the current phase)
     function buyGLN() public payable whitelisted {
         // require the buy price to be set
-        require(baseBuyPrice > 0, "Base buy price must be set before selling tokens.");
+        require(baseBuyPrice > 0);
 
         // Compute buy price (with bonus applied if presale is in progress)
         uint256 buyPrice = baseBuyPrice;
         if (phase == 0) {
             buyPrice = baseBuyPrice.mul(preSaleBonus).div(100);
-            require(msg.value >= 10 ** 18, "Minimum contribution is 1 ETH during presale");
+            require(msg.value >= 10 ** 18);
         }
 
         // individual cap check if current phase is safe mainsale
@@ -83,7 +83,7 @@ contract GalionTokenSale is PhaseWhitelist {
               phase = 2;
             } else {
               uint256 futureContributedWei = contributed[msg.sender].add(msg.value);
-              require(futureContributedWei <= individualWeiCap, "Must respect individual cap during safe mainsale");
+              require(futureContributedWei <= individualWeiCap);
             }
         }
 
@@ -92,7 +92,7 @@ contract GalionTokenSale is PhaseWhitelist {
         uint256 futureTokenSold = tokenSold + buyAmount;
 
         // Check for hardcap
-        require(futureTokenSold <= HARDCAP, "Cannot mint beyond hardcap");
+        require(futureTokenSold <= HARDCAP);
 
         // Mint token & assign to contributor
         contributed[msg.sender] = contributed[msg.sender].add(msg.value);
@@ -103,15 +103,15 @@ contract GalionTokenSale is PhaseWhitelist {
 
     // Set presale bonus
     function setPreSaleBonus(uint256 newBonus) public onlyOwner {
-        require(newBonus >= 100, "The bonus must be advantageous");
+        require(newBonus >= 100);
         preSaleBonus = newBonus;
     }
 
     // Set buy price (tokens per ETH, without bonus).
     // because both have 18 decimal, newBuyPrice is "how much token can be bought with 1 eth"
     function setBuyPrice(uint256 newBuyPrice) public onlyOwner {
-        require(phase == 0, "Must be in presale phase");
-        require(newBuyPrice > 0, "Buy price must be strictly positive");
+        require(phase == 0);
+        require(newBuyPrice > 0);
 
         baseBuyPrice = newBuyPrice;
     }
@@ -119,17 +119,18 @@ contract GalionTokenSale is PhaseWhitelist {
     // Withdraw all ETH stored on the contract, by sending them to the company address
     // It shouldn't be needed as ETH is transferred to the owner at each transaction.
     function withdraw() public {
-        require(tokenSold >= SOFTCAP, "Can only withdraw after softcap is reached");
+        require(tokenSold >= SOFTCAP);
 
         COMPANY_ADDRESS.transfer(address(this).balance);
     }
 
     // allow a user to get refund before softcap is reached
     function refund(address contributor) public {
-        require(tokenSold < SOFTCAP, "Can only ask refund before softcap is reached");
+        require(tokenSold < SOFTCAP);
+        require(phase >= 3);
 
         uint256 contributedWei = contributed[contributor];
-        require(contributedWei > 0, "Can only ask refund for addresses that contributed");
+        require(contributedWei > 0);
 
         contributed[contributor] = 0;
         if (contributedWei > 0 && address(this).balance >= contributedWei) {
@@ -139,8 +140,9 @@ contract GalionTokenSale is PhaseWhitelist {
 
     // activate token after token generation even (enable the transfer() function of ERC20)
     function activateToken() public onlyOwner {
-      require(phase >= 3, "TGE must be over before making tokens tradable");
+      require(phase >= 3);
 
       token.activate();
+      token.transferOwnership(owner);
     }
 }

@@ -32,15 +32,15 @@ contract PhaseWhitelist is Ownable {
         bool presaleOk = phase == 0 && whitelist[msg.sender] == 2;
         bool safeMainSaleOk = phase == 1 && whitelist[msg.sender] > 0;
         bool mainsaleOk = phase == 2 && whitelist[msg.sender] > 0;
-        require(presaleOk || safeMainSaleOk || mainsaleOk, "Not whitelisted in current phase.");
+        require(presaleOk || safeMainSaleOk || mainsaleOk);
         _;
     }
 
     function setPhase(uint8 nextPhase) public onlyOwner {
-        require(nextPhase == phase + 1, "Must go through phases 1 at a time");
+        require(nextPhase == phase + 1);
 
         if (phase == 0) {
-            require(individualWeiCap > 0, "Must set individual wei cap before starting safe mainsale");
+            require(individualWeiCap > 0);
             // set the end of safe mainsale timestamp
             safeMainsaleEnd = block.timestamp + 12 hours;
         }
@@ -51,7 +51,7 @@ contract PhaseWhitelist is Ownable {
     // Set the individual wei cap which is only used during the safe main sale
     function setIndividualWeiCap(uint256 newWeiCap) public onlyOwner {
         // must still be in presale
-        require(phase < 1, "Can only change individual wei cap during presale");
+        require(phase < 1);
 
         require(newWeiCap > 0);
         individualWeiCap = newWeiCap;
