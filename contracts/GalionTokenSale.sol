@@ -36,25 +36,25 @@ contract GalionTokenSale is PhaseWhitelist {
     uint256 public tokenSold = 0;
 
     constructor() public {
-      // Token contract creation
-      token = new GalionToken();
-      uint256 tokens = 10 ** uint256(token.decimals()); // alias for token's decimals
+        // Token contract creation
+        token = new GalionToken();
+        uint256 tokens = 10 ** uint256(token.decimals()); // alias for token's decimals
 
-      // Mint company tokens
-      token.mint(COMPANY_ADDRESS, 96000000 * tokens);
+        // Mint company tokens
+        token.mint(COMPANY_ADDRESS, 96000000 * tokens);
 
-      // Mint & lock team tokens
-      uint256 releaseTime = block.timestamp + 52 weeks;
-      teamLockAddress1 = new TokenTimelock(token, address(0x4933916d10aB8225a33F3a8bae7CF1A8AA316068), releaseTime);
-      teamLockAddress2 = new TokenTimelock(token, address(0x531A551dE22317857b10d9FaB69674E56130679e), releaseTime);
-      teamLockAddress3 = new TokenTimelock(token, address(0xDe6fdA07c2f16dE22654B707c80d25705f6410a5), releaseTime);
-      teamLockAddress4 = new TokenTimelock(token, address(0x13E45dFF393716f3169E34Dd9039468975b808C6), releaseTime);
-      teamLockAddress5 = new TokenTimelock(token, address(0xFcCB4C7D53745f03DF19039f3B37083D0E4ff47B), releaseTime);
-      token.mint(teamLockAddress1, 6400000 * tokens);
-      token.mint(teamLockAddress2, 6400000 * tokens);
-      token.mint(teamLockAddress3, 6400000 * tokens);
-      token.mint(teamLockAddress4, 6400000 * tokens);
-      token.mint(teamLockAddress5, 6400000 * tokens);
+        // Mint & lock team tokens
+        uint256 releaseTime = block.timestamp + 52 weeks;
+        teamLockAddress1 = new TokenTimelock(token, address(0x4933916d10aB8225a33F3a8bae7CF1A8AA316068), releaseTime);
+        teamLockAddress2 = new TokenTimelock(token, address(0x531A551dE22317857b10d9FaB69674E56130679e), releaseTime);
+        teamLockAddress3 = new TokenTimelock(token, address(0xDe6fdA07c2f16dE22654B707c80d25705f6410a5), releaseTime);
+        teamLockAddress4 = new TokenTimelock(token, address(0x13E45dFF393716f3169E34Dd9039468975b808C6), releaseTime);
+        teamLockAddress5 = new TokenTimelock(token, address(0xFcCB4C7D53745f03DF19039f3B37083D0E4ff47B), releaseTime);
+        token.mint(teamLockAddress1, 6400000 * tokens);
+        token.mint(teamLockAddress2, 6400000 * tokens);
+        token.mint(teamLockAddress3, 6400000 * tokens);
+        token.mint(teamLockAddress4, 6400000 * tokens);
+        token.mint(teamLockAddress5, 6400000 * tokens);
     }
 
     // Default function called when someone is sending ETH : redirects to the ICO buy function.
@@ -80,10 +80,10 @@ contract GalionTokenSale is PhaseWhitelist {
         // individual cap check if current phase is safe mainsale
         if (phase == 1) {
             if (block.timestamp >= safeMainsaleEnd) { // potentially switch to normal mainsale if time is elapsed
-              phase = 2;
+                phase = 2;
             } else {
-              uint256 futureContributedWei = contributed[msg.sender].add(msg.value);
-              require(futureContributedWei <= individualWeiCap);
+                uint256 futureContributedWei = contributed[msg.sender].add(msg.value);
+                require(futureContributedWei <= individualWeiCap);
             }
         }
 
@@ -140,9 +140,9 @@ contract GalionTokenSale is PhaseWhitelist {
 
     // activate token after token generation even (enable the transfer() function of ERC20)
     function activateToken() public onlyOwner {
-      require(phase >= 3);
+        require(phase >= 3);
 
-      token.activate();
-      token.transferOwnership(owner);
+        token.activate();
+        token.transferOwnership(owner);
     }
 }
