@@ -23,5 +23,5 @@ $> npm install
 
 Run tests :
 ```
-$> truffle test test/GalionToken.test.js
+$> truffle test test/GalionTokenSale.test.js
 ```

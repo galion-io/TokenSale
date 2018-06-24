@@ -1,5 +1,5 @@
-const GalionTokenSaleContract = artifacts.require('./GalionTokenSale.sol');
-const GalionTokenContract = artifacts.require('./GalionToken.sol');
+const GalionTokenSaleContract = artifacts.require('./contracts/GalionTokenSale.sol');
+const GalionTokenContract = artifacts.require('./contracts/GalionToken.sol');
 const ETH = 1e+18;
 const GLN = 1e+18;
 
