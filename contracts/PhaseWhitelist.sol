@@ -58,12 +58,12 @@ contract PhaseWhitelist is Ownable {
     }
 
     // Public function to check if an address is in the presale whitelist.
-    function checkWhitelistedForPresale(address _addr) public constant returns (bool) {
+    function checkWhitelistedForPresale(address _addr) public view returns (bool) {
         return whitelist[_addr] == 2;
     }
 
     // Public function to check if an address is in the mainsale whitelist.
-    function checkWhitelistedForMainsale(address _addr) public constant returns (bool) {
+    function checkWhitelistedForMainsale(address _addr) public view returns (bool) {
         return whitelist[_addr] > 0;
     }
 
