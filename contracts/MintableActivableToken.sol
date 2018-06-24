@@ -27,6 +27,7 @@ contract MintableActivableToken is MintableToken {
 
     function activate() public onlyOwner whenNotActivated {
         activated = true;
+        super.finishMinting();
         emit Activate();
     }
 
