@@ -1,0 +1,13 @@
+{
+  "name": "galion-contract-truffle",
+  "version": "1.0.0",
+  "description": "",
+  "directories": {},
+  "scripts": {},
+  "author": "Galion Team <contact@it.galion.io>",
+  "dependencies": {
+    "babel-polyfill": "^6.26.0",
+    "babel-register": "^6.26.0",
+    "solc": "^0.4.24"
+  }
+}
