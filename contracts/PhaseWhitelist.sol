@@ -13,7 +13,6 @@ contract PhaseWhitelist is Ownable {
     // 1 : whitelisted for mainsale
     // 2 : whitelisted for presale
     mapping(address => uint8) private whitelist;
-    uint256 public whitelistCount = 0;
 
     // store the amount contributed by each contributors
     // used in case of refund in the claim function
@@ -26,6 +25,7 @@ contract PhaseWhitelist is Ownable {
     // Indicator of the crowdsale phase (0 = presale, 1 = safe mainsale, 2 = mainsale, 3 = TGE over)
     uint8 public phase = 0;
     uint256 public safeMainsaleEnd = 0;
+    uint256 public mainsaleEnd = 0;
 
     // Modifier to check that the user is whitelisted in current phase
     modifier whitelisted() {
@@ -43,6 +43,8 @@ contract PhaseWhitelist is Ownable {
             require(individualWeiCap > 0);
             // set the end of safe mainsale timestamp
             safeMainsaleEnd = block.timestamp + 12 hours;
+            // set the end of the main sale timestamp
+            mainsaleEnd = block.timestamp + 2 weeks;
         }
 
         phase = nextPhase;
@@ -72,8 +74,6 @@ contract PhaseWhitelist is Ownable {
         for (uint256 i = 0; i < addresses.length; i++) {
             whitelist[addresses[i]] = 2;
         }
-
-        whitelistCount = whitelistCount.add(addresses.length);
     }
 
     // Add addresses to whitelist (level = mainsale).
@@ -81,8 +81,6 @@ contract PhaseWhitelist is Ownable {
         for (uint256 i = 0; i < addresses.length; i++) {
             whitelist[addresses[i]] = 1;
         }
-
-        whitelistCount = whitelistCount.add(addresses.length);
     }
 
     // Remove addresses from the whitelist.
@@ -90,7 +88,5 @@ contract PhaseWhitelist is Ownable {
         for (uint256 i = 0; i < addresses.length; i++) {
             whitelist[addresses[i]] = 0;
         }
-
-        whitelistCount = whitelistCount.sub(addresses.length);
     }
 }

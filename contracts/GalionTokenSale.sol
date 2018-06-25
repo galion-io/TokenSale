@@ -72,6 +72,11 @@ contract GalionTokenSale is PhaseWhitelist {
         // require the buy price to be set
         require(baseBuyPrice > 0);
 
+        // if the phase is not the presale (safeMainsale or mainSale) then we must check if the sale is over
+        if(phase > 0) {
+            require(block.timestamp <= mainsaleEnd);
+        }
+
         // Compute buy price (with bonus applied if presale is in progress)
         uint256 buyPrice = baseBuyPrice;
         // set the correct cap for the phase
