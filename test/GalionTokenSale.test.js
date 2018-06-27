@@ -72,17 +72,14 @@ contract('GalionToken', function ([owner, contributor1]) {
     it('should allow to add people to the whitelist', async function() {
       await contract.addToWhitelistForPresale([contributor1]);
       assert.equal(await contract.checkWhitelistedForPresale(contributor1), true);
-      assert.equal(await contract.whitelistCount(), 1);
     });
 
     it('should allow to remove people from the whitelist', async function() {
       await contract.addToWhitelistForPresale([contributor1]);
       assert.equal(await contract.checkWhitelistedForPresale(contributor1), true);
-      assert.equal(await contract.whitelistCount(), 1);
 
       await contract.removeFromWhitelist([contributor1]);
       assert.equal(await contract.checkWhitelistedForPresale(contributor1), false);
-      assert.equal(await contract.whitelistCount(), 0);
     });
 
     it('should not accept funds from people not whitelisted', async function() {
