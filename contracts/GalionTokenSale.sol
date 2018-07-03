@@ -23,7 +23,7 @@ contract GalionTokenSale is PhaseWhitelist {
     // soft cap is 26% of total supply
     uint256 public constant SOFTCAP = 83 * (10 ** 6) * (10 ** 18);
     // presale cap is 50% of total supply
-    uint256 public constant PRESALECAP = 60 * (10 ** 6) * (10 ** 18);
+    uint256 public constant PRESALECAP = 160 * (10 ** 6) * (10 ** 18);
     // hard cap is 60% of total supply
     uint256 public constant HARDCAP = 192 * (10 ** 6) * (10 ** 18);
 
