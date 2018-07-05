@@ -2,6 +2,7 @@ const GalionTokenSaleContract = artifacts.require('./contracts/GalionTokenSale.s
 const GalionTokenContract = artifacts.require('./contracts/GalionToken.sol');
 const ETH = 1e+18;
 const GLN = 1e+18;
+const BONUS = 1.2;
 
 contract('GalionToken', function ([owner, contributor1]) {
   let contract;
@@ -70,16 +71,16 @@ contract('GalionToken', function ([owner, contributor1]) {
 
   describe('Presale', async function() {
     it('should allow to add people to the whitelist', async function() {
-      await contract.addToWhitelistForPresale([contributor1]);
-      assert.equal(await contract.checkWhitelistedForPresale(contributor1), true);
+      await contract.addToWhitelist([contributor1]);
+      assert.equal(await contract.checkWhitelisted(contributor1), true);
     });
 
     it('should allow to remove people from the whitelist', async function() {
-      await contract.addToWhitelistForPresale([contributor1]);
-      assert.equal(await contract.checkWhitelistedForPresale(contributor1), true);
+      await contract.addToWhitelist([contributor1]);
+      assert.equal(await contract.checkWhitelisted(contributor1), true);
 
       await contract.removeFromWhitelist([contributor1]);
-      assert.equal(await contract.checkWhitelistedForPresale(contributor1), false);
+      assert.equal(await contract.checkWhitelisted(contributor1), false);
     });
 
     it('should not accept funds from people not whitelisted', async function() {
@@ -92,7 +93,7 @@ contract('GalionToken', function ([owner, contributor1]) {
     });
 
     it('should not allow to mint tokens if buy price isn\'t set', async function() {
-      await contract.addToWhitelistForPresale([contributor1]);
+      await contract.addToWhitelist([contributor1]);
 
       try {
         await contract.sendTransaction({ value: 1 * ETH, from: contributor1 });
@@ -103,7 +104,7 @@ contract('GalionToken', function ([owner, contributor1]) {
     });
 
     it('should not allow contributions < 1 ETH during presale', async function() {
-      await contract.addToWhitelistForPresale([contributor1]);
+      await contract.addToWhitelist([contributor1]);
       await contract.setBuyPrice(5000);
 
       try {
@@ -115,27 +116,16 @@ contract('GalionToken', function ([owner, contributor1]) {
     });
 
     it('should allow to mint tokens if buy price is set', async function() {
-      await contract.addToWhitelistForPresale([contributor1]);
-      await contract.setBuyPrice(5000);
+      buyPrice = 5000;
+      await contract.addToWhitelist([contributor1]);
+      await contract.setBuyPrice(buyPrice);
       await contract.sendTransaction({ value: 1 * ETH, from: contributor1 });
 
       const address = await contract.address
       assert.equal(web3.eth.getBalance(address).toNumber(), 1 * ETH)
 
       const contributorBalance = await token.balanceOf(contributor1);
-      assert.equal(contributorBalance.toNumber(), 6000 * GLN)
-    });
-
-    it('should not accept funds from people whitelisted for mainsale but not presale', async function() {
-      await contract.addToWhitelistForMainsale([contributor1]);
-      await contract.setBuyPrice(5000);
-
-      try {
-        await contract.sendTransaction({ value: 1 * ETH, from: contributor1 });
-        assert.fail();
-      } catch (error) {
-        assert(error.toString().includes('revert'), error.toString());
-      }
+      assert.equal(contributorBalance.toNumber(), buyPrice * BONUS * GLN)
     });
 
     it.skip('should not allow to mint more tokens than hardcap');
