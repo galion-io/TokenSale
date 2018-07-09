@@ -35,13 +35,13 @@ contract PhaseWhitelist is Ownable {
     // the sale if ON if the phase is 0 = presale
     // or if the phase is 2 or 3 (safe main sale and main sale) and the time is before the mainsale end
     modifier saleIsOn() {
-        require(phase == 0 || ( (phase == 2 || phase == 3) && block.timestamp <= mainsaleEnd) );
+        require(phase == 0 || ((phase == 2 || phase == 3) && block.timestamp <= mainsaleEnd));
         _;
     }
 
     function setPhase(uint8 nextPhase) public onlyOwner {
         require(nextPhase == phase + 1);
-        
+
         // cannot change the phase from safe sale to main sale using this function
         // the safe sale to main safe switch is made in the buyGLN function
         // without this test, we could ignore the safe main sale
