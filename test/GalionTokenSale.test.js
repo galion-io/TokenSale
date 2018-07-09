@@ -192,11 +192,18 @@ contract('GalionToken', function ([owner, contributor1]) {
 		});		
 		it.skip('should not allow another address than the owner to set the presale bonus');
 		it.skip('should not allow another address than the owner to activate the token trade');
+		it.skip('should not allow another address than the owner to set the individual cap');
+		it.skip('should not allow another address than the owner to whitelist');
+		it.skip('should not allow another address than the owner to remove from whitelist');
 	});
 
-	describe('Pause', async function () {
+	describe('Pause phase', async function () {
 
-		it.skip('should allow to pause the sale');
+		it('should allow to pause the sale', async function () {
+			await contract.setPhase(1);
+			assert.equal(contract.getCurrentPhase.toNumber(), 1);
+		});
+
 		it.skip('should not allow to contribute during the pause');
 		it.skip('should not allow to start the next phase before setting the individual cap');
 		it.skip('should allow to set the individual cap');
