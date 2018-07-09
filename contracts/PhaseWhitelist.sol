@@ -47,6 +47,13 @@ contract PhaseWhitelist is Ownable {
         // without this test, we could ignore the safe main sale
         require(phase != 2);
 
+        // if the next phase is the end of the sale, we must check that the time is over the main sale end timestamp
+        // without this test, we could stop the main sale
+        // the mainsale can still be stopped in the buyGLN function if the cap is reached
+        if (nextPhase == 4) {
+            require(block.timestamp > mainsaleEnd);
+        }
+
         // if the phase is the pause phase (1), the next phase is the safe sale so we need to set the individual wei cap before
         if (phase == 1) {
             require(individualWeiCap > 0);
@@ -70,6 +77,11 @@ contract PhaseWhitelist is Ownable {
 
         require(newWeiCap > 0);
         individualWeiCap = newWeiCap;
+    }
+
+    // Get the individual wei cap which is only used during the safe main sale
+    function getIndividualWeiCap() public view returns (uint256) {
+        return individualWeiCap;
     }
 
     // Public function to check if an address is in the whitelist
