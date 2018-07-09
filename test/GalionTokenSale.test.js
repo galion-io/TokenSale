@@ -4,7 +4,7 @@ const ETH = 1e+18;
 const GLN = 1e+18;
 const BONUS = 1.2;
 
-contract('GalionToken', function ([owner, contributor1]) {
+contract('GalionToken', function ([owner, contributor1, contributor2]) {
 	let contract;
 	let token;
 
@@ -194,12 +194,68 @@ contract('GalionToken', function ([owner, contributor1]) {
 				assert(error.toString().includes('revert'), error.toString());
 			}
 		});
-		it.skip('should not allow another address than the owner to set the presale bonus');
+
+		it('should not allow another address than the owner to set the presale bonus', async function () {
+			try {
+				await contract.setPreSaleBonus(130, {
+					from: contributor1
+				});
+				assert.fail();
+			} catch (error) {
+				assert(error.toString().includes('revert'), error.toString());
+			}
+		});
+
 		it.skip('should not allow another address than the owner to activate the token trade');
-		it.skip('should not allow another address than the owner to set the individual cap');
-		it.skip('should not allow another address than the owner to set the phase');
-		it.skip('should not allow another address than the owner to whitelist');
-		it.skip('should not allow another address than the owner to remove from whitelist');
+		it('should not allow another address than the owner to set the individual cap', async function () {
+			await contract.setPhase(1);
+			try {
+				await contract.setIndividualWeiCap(1 * ETH, {
+					from: contributor1
+				});
+				assert.fail();
+			} catch (error) {
+				assert(error.toString().includes('revert'), error.toString());
+			}
+		});
+
+		it('should not allow another address than the owner to set the phase', async function () {
+			try {
+				await contract.setPhase(1, {
+					from: contributor1
+				});
+				assert.fail();
+			} catch (error) {
+				assert(error.toString().includes('revert'), error.toString());
+			}
+		});
+
+		it('should not allow another address than the owner to whitelist', async function () {
+			try {
+				await contract.addToWhitelist([contributor2], {
+					from: contributor1
+				});
+				assert.fail();
+			} catch (error) {
+				assert(error.toString().includes('revert'), error.toString());
+				assert.equal(await contract.checkWhitelisted(contributor2), false);
+			}
+		});
+
+		it('should not allow another address than the owner to remove from whitelist', async function () {
+			await contract.addToWhitelist([contributor2]);
+			assert.equal(await contract.checkWhitelisted(contributor2), true);
+
+			try {
+				await contract.removeFromWhitelist([contributor2], {
+					from: contributor1
+				});
+				assert.fail();
+			} catch (error) {
+				assert(error.toString().includes('revert'), error.toString());
+				assert.equal(await contract.checkWhitelisted(contributor2), true);
+			}
+		});
 	});
 
 	describe('Pause phase', async function () {
