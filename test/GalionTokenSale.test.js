@@ -67,6 +67,10 @@ contract('GalionToken', function ([owner, contributor1]) {
 				0.02 * 320 * 1e6 * 1e18
 			);
 		});
+
+		it('should deploy with the phase equals to 0', async function () {
+			assert.equal(await contract.getCurrentPhase(), 0);
+		});
 	});
 
 	describe('Presale', async function () {
@@ -201,13 +205,12 @@ contract('GalionToken', function ([owner, contributor1]) {
 
 		it('should allow to pause the sale', async function () {
 			await contract.setPhase(1);
-			assert.equal(contract.getCurrentPhase.toNumber(), 1);
+			assert.equal(await contract.getCurrentPhase(), 1);
 		});
 
 		it.skip('should not allow to contribute during the pause');
 		it.skip('should not allow to start the next phase before setting the individual cap');
 		it.skip('should allow to set the individual cap');
-
 	});
 
 	describe('Safe Mainsale', async function () {
