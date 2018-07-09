@@ -292,8 +292,23 @@ contract('GalionToken', function ([owner, contributor1, contributor2]) {
 				assert(error.toString().includes('revert'), error.toString());
 			}
 		});
-		it.skip('should allow to set the individual cap');
-		it.skip('should allow to start the safe sale if the individual cap is set');
+
+		it('should allow to set the individual cap', async function () {
+			await contract.setPhase(1);
+			assert.equal(await contract.getCurrentPhase(), 1);
+			await contract.setIndividualWeiCap(1 * ETH);
+			assert.equal(await contract.getIndividualWeiCap(), 1 * ETH);
+		});
+
+		it('should allow to start the safe sale if the individual cap is set', async function () {
+			await contract.setPhase(1);
+			assert.equal(await contract.getCurrentPhase(), 1);
+			await contract.setIndividualWeiCap(1 * ETH);
+			
+			assert.equal(await contract.getIndividualWeiCap(), 1 * ETH);
+			await contract.setPhase(2);
+			assert.equal(await contract.getCurrentPhase(), 2);
+		});
 	});
 
 	describe('Safe Mainsale', async function () {
