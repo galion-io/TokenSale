@@ -41,6 +41,11 @@ contract PhaseWhitelist is Ownable {
 
     function setPhase(uint8 nextPhase) public onlyOwner {
         require(nextPhase == phase + 1);
+        
+        // cannot change the phase from safe sale to main sale using this function
+        // the safe sale to main safe switch is made in the buyGLN function
+        // without this test, we could ignore the safe main sale
+        require(phase != 2);
 
         // if the phase is the pause phase (1), the next phase is the safe sale so we need to set the individual wei cap before
         if (phase == 1) {
