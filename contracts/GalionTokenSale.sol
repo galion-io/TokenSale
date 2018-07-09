@@ -105,6 +105,11 @@ contract GalionTokenSale is PhaseWhitelist {
         tokenSold = futureTokenSold;
         weiRaised = weiRaised.add(msg.value);
         token.mint(msg.sender, buyAmount);
+
+        // end the token generation event if the total token sold is the hard cap
+        if (tokenSold == HARDCAP) {
+            phase = 4;
+        }
     }
 
     // Set presale bonus
