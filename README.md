@@ -4,8 +4,8 @@
 
 Make sure you have testrpc installed, then start it.
 ```
-$> npm i -g ethereumjs-testrpc
-$> testrpc
+$> npm install -g ganache-cli
+$> ganache-cli -e 100000000
 ```
 
 Make sure you have an up-to-date truffle & solidity compiler installed
