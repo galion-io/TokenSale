@@ -181,7 +181,7 @@ contract('GalionToken', function ([owner, contributor1]) {
 			assert.equal(contributorBalance.toNumber(), contributingEth * buyPrice * BONUS * GLN)
 
 		});
-	});	
+	});
 
 	describe('Owner only functions', async function () {
 		it('should not allow another address than the owner to set the buy price', async function () {
@@ -193,10 +193,11 @@ contract('GalionToken', function ([owner, contributor1]) {
 			} catch (error) {
 				assert(error.toString().includes('revert'), error.toString());
 			}
-		});		
+		});
 		it.skip('should not allow another address than the owner to set the presale bonus');
 		it.skip('should not allow another address than the owner to activate the token trade');
 		it.skip('should not allow another address than the owner to set the individual cap');
+		it.skip('should not allow another address than the owner to set the phase');
 		it.skip('should not allow another address than the owner to whitelist');
 		it.skip('should not allow another address than the owner to remove from whitelist');
 	});
@@ -208,9 +209,35 @@ contract('GalionToken', function ([owner, contributor1]) {
 			assert.equal(await contract.getCurrentPhase(), 1);
 		});
 
-		it.skip('should not allow to contribute during the pause');
-		it.skip('should not allow to start the next phase before setting the individual cap');
+		it('should not allow to contribute during the pause', async function () {
+			await contract.addToWhitelist([contributor1]);
+			await contract.setBuyPrice(5000);
+
+			await contract.setPhase(1);
+
+			try {
+				await contract.sendTransaction({
+					value: contributingEth * ETH,
+					from: contributor1
+				});
+				assert.fail();
+			} catch (error) {
+				assert(error.toString().includes('revert'), error.toString());
+			}
+		});
+
+		it('should not allow to start the next phase before setting the individual cap', async function () {
+			await contract.setPhase(1);
+
+			try {
+				await contract.setPhase(2);
+				assert.fail();
+			} catch (error) {
+				assert(error.toString().includes('revert'), error.toString());
+			}
+		});
 		it.skip('should allow to set the individual cap');
+		it.skip('should allow to start the safe sale if the individual cap is set');
 	});
 
 	describe('Safe Mainsale', async function () {
