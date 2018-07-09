@@ -154,6 +154,7 @@ contract GalionTokenSale is PhaseWhitelist {
     // activate token after token generation even (enable the transfer() function of ERC20)
     function activateToken() public onlyOwner {
         require(phase >= 3);
+        require(tokenSold >= SOFTCAP); // cannot activate the token if the soft cap is not reached
 
         token.activate();
         token.transferOwnership(owner);
