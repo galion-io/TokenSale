@@ -372,7 +372,7 @@ contract('GalionToken', function ([owner, contributor1, contributor2]) {
 			await contract.setPhase(2);
 			assert.equal(await contract.getCurrentPhase(), 2);
 
-			// set the time in 13 hours
+			// set the time in 12 hours and 1 sec
 			web3.currentProvider.sendAsync({
 				jsonrpc: "2.0",
 				method: "evm_increaseTime",
@@ -404,7 +404,7 @@ contract('GalionToken', function ([owner, contributor1, contributor2]) {
 			await contract.setPhase(2);
 			assert.equal(await contract.getCurrentPhase(), 2);
 
-			// set the time in 13 hours
+			// set the time in 12 hours and 1 sec
 			web3.currentProvider.sendAsync({
 				jsonrpc: "2.0",
 				method: "evm_increaseTime",
