@@ -184,7 +184,7 @@ contract('GalionToken', function ([owner, contributor1, contributor2]) {
 	});
 
 	describe('Owner only functions', async function () {
-		it('should not allow another address than the owner to set the buy price', async function () {
+		it('should not be able to set the buy price if not the owner', async function () {
 			try {
 				await contract.setBuyPrice(5000, {
 					from: contributor1
@@ -195,7 +195,7 @@ contract('GalionToken', function ([owner, contributor1, contributor2]) {
 			}
 		});
 
-		it('should not allow another address than the owner to set the presale bonus', async function () {
+		it('should not be able to set the presale bonus if not the owner', async function () {
 			try {
 				await contract.setPreSaleBonus(130, {
 					from: contributor1
@@ -206,8 +206,8 @@ contract('GalionToken', function ([owner, contributor1, contributor2]) {
 			}
 		});
 
-		it.skip('should not allow another address than the owner to activate the token trade');
-		it('should not allow another address than the owner to set the individual cap', async function () {
+		it.skip('should not be able to activate the token if not the owner');
+		it('should not be able to set the individual wei cap if not the owner', async function () {
 			await contract.setPhase(1);
 			try {
 				await contract.setIndividualWeiCap(1 * ETH, {
@@ -219,7 +219,7 @@ contract('GalionToken', function ([owner, contributor1, contributor2]) {
 			}
 		});
 
-		it('should not allow another address than the owner to set the phase', async function () {
+		it('should not be able to set the phase if not the owner', async function () {
 			try {
 				await contract.setPhase(1, {
 					from: contributor1
@@ -230,7 +230,7 @@ contract('GalionToken', function ([owner, contributor1, contributor2]) {
 			}
 		});
 
-		it('should not allow another address than the owner to whitelist', async function () {
+		it('should not be able to whitelist an address price if not the owner', async function () {
 			try {
 				await contract.addToWhitelist([contributor2], {
 					from: contributor1
@@ -242,7 +242,7 @@ contract('GalionToken', function ([owner, contributor1, contributor2]) {
 			}
 		});
 
-		it('should not allow another address than the owner to remove from whitelist', async function () {
+		it('should not be able to remove from whitelist if not the owner', async function () {
 			await contract.addToWhitelist([contributor2]);
 			assert.equal(await contract.checkWhitelisted(contributor2), true);
 
@@ -260,12 +260,12 @@ contract('GalionToken', function ([owner, contributor1, contributor2]) {
 
 	describe('Pause phase', async function () {
 
-		it('should allow to pause the sale', async function () {
+		it('should be able to pause the sale', async function () {
 			await contract.setPhase(1);
 			assert.equal(await contract.getCurrentPhase(), 1);
 		});
 
-		it('should not allow to contribute during the pause', async function () {
+		it('should no be able to contribute during the pause', async function () {
 			await contract.addToWhitelist([contributor1]);
 			await contract.setBuyPrice(5000);
 
@@ -282,7 +282,16 @@ contract('GalionToken', function ([owner, contributor1, contributor2]) {
 			}
 		});
 
-		it('should not allow to start the next phase before setting the individual cap', async function () {
+		it('should be able to set the individual cap', async function () {
+			await contract.setPhase(1);
+			assert.equal(await contract.getCurrentPhase(), 1);
+			await contract.setIndividualWeiCap(1 * ETH);
+			assert.equal(await contract.getIndividualWeiCap(), 1 * ETH);
+		});
+	});
+
+	describe('Safe Mainsale', async function () {
+		it('should not be able to start before individual cap is set', async function () {
 			await contract.setPhase(1);
 
 			try {
@@ -292,41 +301,138 @@ contract('GalionToken', function ([owner, contributor1, contributor2]) {
 				assert(error.toString().includes('revert'), error.toString());
 			}
 		});
-
-		it('should allow to set the individual cap', async function () {
+		it('should be able to set individual cap & start safe mainsale', async function () {
 			await contract.setPhase(1);
 			assert.equal(await contract.getCurrentPhase(), 1);
 			await contract.setIndividualWeiCap(1 * ETH);
-			assert.equal(await contract.getIndividualWeiCap(), 1 * ETH);
-		});
 
-		it('should allow to start the safe sale if the individual cap is set', async function () {
-			await contract.setPhase(1);
-			assert.equal(await contract.getCurrentPhase(), 1);
-			await contract.setIndividualWeiCap(1 * ETH);
-			
 			assert.equal(await contract.getIndividualWeiCap(), 1 * ETH);
 			await contract.setPhase(2);
 			assert.equal(await contract.getCurrentPhase(), 2);
 		});
-	});
 
-	describe('Safe Mainsale', async function () {
-		it.skip('should not be able to start before individual cap is set');
-		it.skip('should be able to set individual cap & start safe mainsale');
-		it.skip('should not be able to contribute more than individual cap in the first 12 hours');
-		it.skip('should be able to contribute more than individual cap after 12 hours');
+		it('should not be able to contribute more than individual cap in the first 12 hours', async function () {
+			await contract.addToWhitelist([contributor1]);
+			await contract.setBuyPrice(5000);
+
+			await contract.setPhase(1);
+			assert.equal(await contract.getCurrentPhase(), 1);
+			await contract.setIndividualWeiCap(1 * ETH);
+
+			assert.equal(await contract.getIndividualWeiCap(), 1 * ETH);
+			await contract.setPhase(2);
+			assert.equal(await contract.getCurrentPhase(), 2);
+
+			try {
+				await contract.sendTransaction({
+					value: 2 * ETH,
+					from: contributor1
+				});
+				assert.fail();
+			} catch (error) {
+				assert(error.toString().includes('revert'), error.toString());
+			}
+		});
+
+		it('should be able to contribute less than individual cap in the first 12 hours', async function () {
+			const contributingEth = 0.5;
+			const buyPrice = 5000;
+			await contract.addToWhitelist([contributor1]);
+			await contract.setBuyPrice(buyPrice);
+
+			await contract.setPhase(1);
+			assert.equal(await contract.getCurrentPhase(), 1);
+			await contract.setIndividualWeiCap(1 * ETH);
+
+			assert.equal(await contract.getIndividualWeiCap(), 1 * ETH);
+			await contract.setPhase(2);
+			assert.equal(await contract.getCurrentPhase(), 2);
+
+
+			await contract.sendTransaction({
+				value: contributingEth * ETH,
+				from: contributor1
+			});
+
+			assert.equal(web3.eth.getBalance(await contract.address).toNumber(), contributingEth * ETH)
+			assert.equal((await token.balanceOf(contributor1)).toNumber(), contributingEth * buyPrice * GLN);
+		});
+		
+		it('a valid contribution after the 12 hours should change the phase from 2 to 3', async function () {
+			const contributingEth = 0.5;
+			const buyPrice = 5000;
+			await contract.addToWhitelist([contributor1]);
+			await contract.setBuyPrice(buyPrice);
+
+			await contract.setPhase(1);
+			assert.equal(await contract.getCurrentPhase(), 1);
+			await contract.setIndividualWeiCap(1 * ETH);
+
+			assert.equal(await contract.getIndividualWeiCap(), 1 * ETH);
+			await contract.setPhase(2);
+			assert.equal(await contract.getCurrentPhase(), 2);
+
+			// set the time in 13 hours
+			web3.currentProvider.sendAsync({
+				jsonrpc: "2.0",
+				method: "evm_increaseTime",
+				params: [(3600 * 12) + 1],
+				id: 12345
+			  }, function(err, result) {
+				// this is your callback
+			  });
+
+			await contract.sendTransaction({
+				value: contributingEth * ETH,
+				from: contributor1
+			});
+
+			assert.equal(await contract.getCurrentPhase(), 3);
+		});
+
+		it('should be able to contribute more than individual cap after 12 hours', async function () {
+			const contributingEth = 10;
+			const buyPrice = 5000;
+			await contract.addToWhitelist([contributor1]);
+			await contract.setBuyPrice(buyPrice);
+
+			await contract.setPhase(1);
+			assert.equal(await contract.getCurrentPhase(), 1);
+			await contract.setIndividualWeiCap(1 * ETH);
+
+			assert.equal(await contract.getIndividualWeiCap(), 1 * ETH);
+			await contract.setPhase(2);
+			assert.equal(await contract.getCurrentPhase(), 2);
+
+			// set the time in 13 hours
+			web3.currentProvider.sendAsync({
+				jsonrpc: "2.0",
+				method: "evm_increaseTime",
+				params: [(3600 * 12) + 1],
+				id: 12345
+			  }, function(err, result) {
+				// this is your callback
+			  });
+
+			await contract.sendTransaction({
+				value: contributingEth * ETH,
+				from: contributor1
+			});
+
+			assert.equal(web3.eth.getBalance(await contract.address).toNumber(), contributingEth * ETH)
+			assert.equal((await token.balanceOf(contributor1)).toNumber(), contributingEth * buyPrice * GLN);
+		});
+
 		it.skip('should not allow to mint more tokens than hardcap');
 		it.skip('should end if hardcap is reached');
 	});
 
 	describe('Mainsale', async function () {
-		it.skip('should not be able to start without waiting the 12 hours of safe mainsale');
+		it.skip('should not be able to start the main sale using the set phase function');
 		it.skip('should allow to add people to the whitelist');
 		it.skip('should allow to remove people from the whitelist');
 		it.skip('should allow people in the presale whitelist to participate');
 		it.skip('should only last 2 weeks maximum');
-		it.skip('should not accept funds from people whitelisted for mainsale as long as mainsale isn\'t open');
 		it.skip('should not allow owner to claim ether on the contract as long as the sale isn\'t finished');
 		it.skip('should not allow to mint more tokens than hardcap');
 		it.skip('should end if hardcap is reached');
