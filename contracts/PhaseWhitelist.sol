@@ -41,19 +41,7 @@ contract PhaseWhitelist is Ownable {
 
     function setPhase(uint8 nextPhase) public onlyOwner {
         require(nextPhase == phase + 1);
-
-        // cannot change the phase from safe sale to main sale using this function
-        // the safe sale to main safe switch is made in the buyGLN function
-        // without this test, we could ignore the safe main sale
-        require(phase != 2);
-
-        // if the next phase is the end of the sale, we must check that the time is over the main sale end timestamp
-        // without this test, we could stop the main sale
-        // the mainsale can still be stopped in the buyGLN function if the cap is reached
-        if (nextPhase == 4) {
-            require(block.timestamp > mainsaleEnd);
-        }
-
+        
         // if the phase is the pause phase (1), the next phase is the safe sale so we need to set the individual wei cap before
         if (phase == 1) {
             require(individualWeiCap > 0);
@@ -61,6 +49,17 @@ contract PhaseWhitelist is Ownable {
             safeMainsaleEnd = block.timestamp + 12 hours;
             // set the end of the main sale timestamp
             mainsaleEnd = block.timestamp + 2 weeks;
+        }
+        
+        // can only change phase from 2 (safe main sale) to 3 (main sale) if the end timestamp of the safe main sale is reached
+        if (nextPhase == 3) {
+            require(block.timestamp > safeMainsaleEnd);
+        }
+
+        // can only change phase from 3 (main sale) to 4 (TGE over) if the end timestamp of the main sale is reached
+        // the mainsale can still be stopped from inside the buyGLN function if the cap is reached
+        if (nextPhase == 4) {
+            require(block.timestamp > mainsaleEnd);
         }
 
         phase = nextPhase;
