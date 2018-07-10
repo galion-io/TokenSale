@@ -357,7 +357,7 @@ contract('GalionToken', function ([owner, contributor1, contributor2]) {
 			assert.equal(web3.eth.getBalance(await contract.address).toNumber(), contributingEth * ETH)
 			assert.equal((await token.balanceOf(contributor1)).toNumber(), contributingEth * buyPrice * GLN);
 		});
-		
+
 		it('a valid contribution after the 12 hours should change the phase from 2 to 3', async function () {
 			const contributingEth = 0.5;
 			const buyPrice = 5000;
@@ -378,9 +378,9 @@ contract('GalionToken', function ([owner, contributor1, contributor2]) {
 				method: "evm_increaseTime",
 				params: [(3600 * 12) + 1],
 				id: 12345
-			  }, function(err, result) {
+			}, function (err, result) {
 				// this is your callback
-			  });
+			});
 
 			await contract.sendTransaction({
 				value: contributingEth * ETH,
@@ -410,9 +410,9 @@ contract('GalionToken', function ([owner, contributor1, contributor2]) {
 				method: "evm_increaseTime",
 				params: [(3600 * 12) + 1],
 				id: 12345
-			  }, function(err, result) {
+			}, function (err, result) {
 				// this is your callback
-			  });
+			});
 
 			await contract.sendTransaction({
 				value: contributingEth * ETH,
@@ -423,8 +423,55 @@ contract('GalionToken', function ([owner, contributor1, contributor2]) {
 			assert.equal((await token.balanceOf(contributor1)).toNumber(), contributingEth * buyPrice * GLN);
 		});
 
-		it.skip('should not allow to mint more tokens than hardcap');
-		it.skip('should end if hardcap is reached');
+		it('should not allow to mint more tokens than hardcap', async function () {
+			const contributingEth = 100;
+			const buyPrice = 2000000;
+			await contract.addToWhitelist([contributor1]);
+			await contract.setBuyPrice(buyPrice);
+
+			await contract.setPhase(1);
+			assert.equal(await contract.getCurrentPhase(), 1);
+			await contract.setIndividualWeiCap(1000 * ETH);
+
+			assert.equal(await contract.getIndividualWeiCap(), 1000 * ETH);
+			await contract.setPhase(2);
+			assert.equal(await contract.getCurrentPhase(), 2);
+
+			try {
+				await contract.sendTransaction({
+					value: contributingEth * ETH,
+					from: contributor1
+				});
+				assert.fail();
+			} catch (error) {
+				assert(error.toString().includes('revert'), error.toString());
+			}
+		});
+
+		it('should end if hardcap is reached', async function () {
+			const contributingEth = 192;
+			const buyPrice = 1000000;
+			await contract.addToWhitelist([contributor1]);
+			await contract.setBuyPrice(buyPrice);
+
+			await contract.setPhase(1);
+			assert.equal(await contract.getCurrentPhase(), 1);
+			await contract.setIndividualWeiCap(1000 * ETH);
+
+			assert.equal(await contract.getIndividualWeiCap(), 1000 * ETH);
+			await contract.setPhase(2);
+			assert.equal(await contract.getCurrentPhase(), 2);
+
+			await contract.sendTransaction({
+				value: contributingEth * ETH,
+				from: contributor1
+			});
+			
+			assert.equal(web3.eth.getBalance(await contract.address).toNumber(), contributingEth * ETH)
+			assert.equal((await token.balanceOf(contributor1)).toNumber(), contributingEth * buyPrice * GLN);
+			
+			assert.equal(await contract.getCurrentPhase(), 4);
+		});
 	});
 
 	describe('Mainsale', async function () {
