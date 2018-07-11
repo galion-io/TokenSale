@@ -1188,7 +1188,7 @@ contract('GalionToken', function ([owner, contributor1, contributor2]) {
 			} catch (error) {
 				assert(error.toString().includes('revert'), error.toString());
 			}
-			
+
 		});
 
 		it('should allow token transfers if token is activated', async function () {
@@ -1254,17 +1254,181 @@ contract('GalionToken', function ([owner, contributor1, contributor2]) {
 			await token.transfer(contributor2, 1000 * GLN, {
 				from: contributor1
 			});
-			
+
 			assert.equal((await token.balanceOf(contributor2)).toNumber(), 1000 * GLN);
 		});
 	});
 
-	describe('Softcap & Refund', async function () {
-		it.skip('should not allow people to claim refund during the presale');
-		it.skip('should not allow people to claim refund during the pause');
-		it.skip('should not allow people to claim refund during the safe sale');
-		it.skip('should not allow people to claim refund during the main sale');
+	describe.only('Softcap & Refund', async function () {
+		it('should not allow people to claim refund during the presale', async function () {
+			// add the contributor1 in the whitelist during the presale
+			await contract.addToWhitelist([contributor1]);
+			assert.equal(await contract.checkWhitelisted(contributor1), true);
+
+			const buyPrice = 1000000;
+			await contract.setBuyPrice(buyPrice);
+
+			const contributingEth = 1;
+
+			await contract.sendTransaction({
+				value: contributingEth * ETH,
+				from: contributor1
+			});
+
+			assert.equal(web3.eth.getBalance(await contract.address).toNumber(), contributingEth * ETH)
+
+			assert.equal((await token.balanceOf(contributor1)).toNumber(), contributingEth * buyPrice * BONUS * GLN);
+
+			// try to get refund
+			try {
+				await contract.refund(contributor1, {
+					from: contributor1
+				});
+				assert.fail();
+			} catch (error) {
+				assert(error.toString().includes('revert'), error.toString());
+			}
+		});
+
+		it('should not allow people to claim refund during the pause', async function () {
+			// add the contributor1 in the whitelist during the presale
+			await contract.addToWhitelist([contributor1]);
+			assert.equal(await contract.checkWhitelisted(contributor1), true);
+
+			const buyPrice = 1000000;
+			await contract.setBuyPrice(buyPrice);
+
+			const contributingEth = 1;
+
+			await contract.sendTransaction({
+				value: contributingEth * ETH,
+				from: contributor1
+			});
+
+			assert.equal(web3.eth.getBalance(await contract.address).toNumber(), contributingEth * ETH)
+
+			assert.equal((await token.balanceOf(contributor1)).toNumber(), contributingEth * buyPrice * BONUS * GLN);
+			
+			// go in pause phase
+			await contract.setPhase(1);
+			assert.equal(await contract.getCurrentPhase(), 1);
+			await contract.setIndividualWeiCap(1000 * ETH);			
+			
+			// try to get refund
+			try {
+				await contract.refund(contributor1, {
+					from: contributor1
+				});
+				assert.fail();
+			} catch (error) {
+				assert(error.toString().includes('revert'), error.toString());
+			}
+		});
+
+		it('should not allow people to claim refund during the safe sale', async function () {
+			// add the contributor1 in the whitelist during the presale
+			await contract.addToWhitelist([contributor1]);
+			assert.equal(await contract.checkWhitelisted(contributor1), true);
+
+			// this block set the contract in the main sale with a buy price of 1 000 000 GLN = 1 ETH
+			// allowing to reach the hardcap with 192 ETH
+
+			const buyPrice = 1000000;
+			await contract.setBuyPrice(buyPrice);
+			
+			// go in pause phase
+			await contract.setPhase(1);
+			assert.equal(await contract.getCurrentPhase(), 1);
+			await contract.setIndividualWeiCap(1000 * ETH);
+
+			// go in safe main sale
+			assert.equal(await contract.getIndividualWeiCap(), 1000 * ETH);
+			await contract.setPhase(2);
+			assert.equal(await contract.getCurrentPhase(), 2);
+
+			const contributingEth = 1;
+
+			await contract.sendTransaction({
+				value: contributingEth * ETH,
+				from: contributor1
+			});
+
+			assert.equal(web3.eth.getBalance(await contract.address).toNumber(), contributingEth * ETH)
+
+			assert.equal((await token.balanceOf(contributor1)).toNumber(), contributingEth * buyPrice * GLN);
+			
+			// try to get refund
+			try {
+				await contract.refund(contributor1, {
+					from: contributor1
+				});
+				assert.fail();
+			} catch (error) {
+				assert(error.toString().includes('revert'), error.toString());
+			}
+		});
+
+		it('should not allow people to claim refund during the main sale', async function () {
+			// add the contributor1 in the whitelist during the presale
+			await contract.addToWhitelist([contributor1]);
+			assert.equal(await contract.checkWhitelisted(contributor1), true);
+
+			// this block set the contract in the main sale with a buy price of 1 000 000 GLN = 1 ETH
+			// allowing to reach the hardcap with 192 ETH
+
+			const buyPrice = 1000000;
+			await contract.setBuyPrice(buyPrice);
+			
+			// go in pause phase
+			await contract.setPhase(1);
+			assert.equal(await contract.getCurrentPhase(), 1);
+			await contract.setIndividualWeiCap(1000 * ETH);
+
+			// go in safe main sale
+			assert.equal(await contract.getIndividualWeiCap(), 1000 * ETH);
+			await contract.setPhase(2);
+			assert.equal(await contract.getCurrentPhase(), 2);
+
+			// set the time in 12 hours and 1 sec
+			web3.currentProvider.sendAsync({
+				jsonrpc: "2.0",
+				method: "evm_increaseTime",
+				params: [(3600 * 12) + 1],
+				id: 12345
+			}, function (err, result) {
+
+			});
+
+			// go in main sale phase
+			await contract.setPhase(3);
+			assert.equal(await contract.getCurrentPhase(), 3);
+			// end of the "put the contract in the main sale" block
+
+			const contributingEth = 1;
+
+			await contract.sendTransaction({
+				value: contributingEth * ETH,
+				from: contributor1
+			});
+
+			assert.equal(web3.eth.getBalance(await contract.address).toNumber(), contributingEth * ETH)
+
+			assert.equal((await token.balanceOf(contributor1)).toNumber(), contributingEth * buyPrice * GLN);
+			
+			// try to get refund
+			try {
+				await contract.refund(contributor1, {
+					from: contributor1
+				});
+				assert.fail();
+			} catch (error) {
+				assert(error.toString().includes('revert'), error.toString());
+			}
+		});
+
 		it.skip('should allow people to claim refund after the sale is over, and softcap is not reached');
+		it.skip('should not allow people to claim refund multiple times after the sale is over, and softcap is not reached');
+		it.skip('should not allow non contributor people to claim refund after the sale is over, and softcap is not reached');
 		it.skip('should not allow people to claim refund after the sale is over, and softcap is reached');
 	});
 
