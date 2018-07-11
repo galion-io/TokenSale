@@ -641,7 +641,7 @@ contract('GalionToken', function ([owner, contributor1, contributor2]) {
 
 			await contract.addToWhitelist([contributor1]);
 			assert.equal(await contract.checkWhitelisted(contributor1), true);
-			
+
 			const contributingEth = 10;
 
 			await contract.sendTransaction({
@@ -687,7 +687,7 @@ contract('GalionToken', function ([owner, contributor1, contributor2]) {
 			assert.equal(await contract.getCurrentPhase(), 3);
 			// end of the "put the contract in the main sale" block
 
-			
+
 			const contributingEth = 10;
 
 			await contract.sendTransaction({
@@ -742,9 +742,9 @@ contract('GalionToken', function ([owner, contributor1, contributor2]) {
 			}, function (err, result) {
 
 			});
-			
+
 			const contributingEth = 10;
-			
+
 			try {
 				await contract.sendTransaction({
 					value: contributingEth * ETH,
@@ -910,7 +910,7 @@ contract('GalionToken', function ([owner, contributor1, contributor2]) {
 			assert.equal(web3.eth.getBalance(await contract.address).toNumber(), contributingEth * ETH)
 
 			assert.equal((await token.balanceOf(contributor1)).toNumber(), contributingEth * buyPrice * GLN);
-			
+
 			assert.equal(await contract.getCurrentPhase(), 4);
 		});
 
@@ -957,7 +957,7 @@ contract('GalionToken', function ([owner, contributor1, contributor2]) {
 			assert.equal(web3.eth.getBalance(await contract.address).toNumber(), contributingEth * ETH)
 
 			assert.equal((await token.balanceOf(contributor1)).toNumber(), contributingEth * buyPrice * GLN);
-			
+
 			try {
 				await contract.activateToken();
 				assert.fail();
@@ -969,14 +969,301 @@ contract('GalionToken', function ([owner, contributor1, contributor2]) {
 	});
 
 	describe('After TGE is finished', async function () {
-		it.skip('should not accept any contributions anymore');
-		it.skip('should be able to activate token');
-		it.skip('should not allow token transfers if token is not activated');
-		it.skip('should allow token transfers if token is activated');
+		it('should be able to end the main sale after 2 weeks', async function () {
+			// add the contributor1 in the whitelist during the presale
+			await contract.addToWhitelist([contributor1]);
+			assert.equal(await contract.checkWhitelisted(contributor1), true);
+
+			// this block set the contract in the main sale with a buy price of 1 000 000 GLN = 1 ETH
+			// allowing to reach the hardcap with 192 ETH
+
+			const buyPrice = 1000000;
+			await contract.setBuyPrice(buyPrice);
+
+			await contract.setPhase(1);
+			assert.equal(await contract.getCurrentPhase(), 1);
+			await contract.setIndividualWeiCap(1000 * ETH);
+
+			assert.equal(await contract.getIndividualWeiCap(), 1000 * ETH);
+			await contract.setPhase(2);
+			assert.equal(await contract.getCurrentPhase(), 2);
+
+			// set the time in 12 hours and 1 sec
+			web3.currentProvider.sendAsync({
+				jsonrpc: "2.0",
+				method: "evm_increaseTime",
+				params: [(3600 * 12) + 1],
+				id: 12345
+			}, function (err, result) {
+
+			});
+
+			await contract.setPhase(3);
+			assert.equal(await contract.getCurrentPhase(), 3);
+			// end of the "put the contract in the main sale" block
+
+			// set the time in 2 weeks and 1 sec
+			web3.currentProvider.sendAsync({
+				jsonrpc: "2.0",
+				method: "evm_increaseTime",
+				params: [(3600 * 24 * 14) + 1],
+				id: 12345
+			}, function (err, result) {
+
+			});
+
+			await contract.setPhase(4);
+			assert.equal(await contract.getCurrentPhase(), 4);
+		});
+
+		it('should not accept any contributions anymore', async function () {
+			// add the contributor1 in the whitelist during the presale
+			await contract.addToWhitelist([contributor1]);
+			assert.equal(await contract.checkWhitelisted(contributor1), true);
+
+			// this block set the contract in the main sale with a buy price of 1 000 000 GLN = 1 ETH
+			// allowing to reach the hardcap with 192 ETH
+
+			const buyPrice = 1000000;
+			await contract.setBuyPrice(buyPrice);
+
+			await contract.setPhase(1);
+			assert.equal(await contract.getCurrentPhase(), 1);
+			await contract.setIndividualWeiCap(1000 * ETH);
+
+			assert.equal(await contract.getIndividualWeiCap(), 1000 * ETH);
+			await contract.setPhase(2);
+			assert.equal(await contract.getCurrentPhase(), 2);
+
+			// set the time in 12 hours and 1 sec
+			web3.currentProvider.sendAsync({
+				jsonrpc: "2.0",
+				method: "evm_increaseTime",
+				params: [(3600 * 12) + 1],
+				id: 12345
+			}, function (err, result) {
+
+			});
+
+			await contract.setPhase(3);
+			assert.equal(await contract.getCurrentPhase(), 3);
+			// end of the "put the contract in the main sale" block
+
+			// set the time in 2 weeks and 1 sec
+			web3.currentProvider.sendAsync({
+				jsonrpc: "2.0",
+				method: "evm_increaseTime",
+				params: [(3600 * 24 * 14) + 1],
+				id: 12345
+			}, function (err, result) {
+
+			});
+
+			await contract.setPhase(4);
+			assert.equal(await contract.getCurrentPhase(), 4);
+
+			try {
+				await contract.sendTransaction({
+					value: 10 * ETH,
+					from: contributor1
+				});
+				assert.fail();
+			} catch (error) {
+				assert(error.toString().includes('revert'), error.toString());
+			}
+		});
+
+		it('should be able to activate token', async function () {
+			// add the contributor1 in the whitelist during the presale
+			await contract.addToWhitelist([contributor1]);
+			assert.equal(await contract.checkWhitelisted(contributor1), true);
+
+			// this block set the contract in the main sale with a buy price of 1 000 000 GLN = 1 ETH
+			// allowing to reach the hardcap with 192 ETH
+
+			const buyPrice = 1000000;
+			await contract.setBuyPrice(buyPrice);
+
+			await contract.setPhase(1);
+			assert.equal(await contract.getCurrentPhase(), 1);
+			await contract.setIndividualWeiCap(1000 * ETH);
+
+			assert.equal(await contract.getIndividualWeiCap(), 1000 * ETH);
+			await contract.setPhase(2);
+			assert.equal(await contract.getCurrentPhase(), 2);
+
+			// set the time in 12 hours and 1 sec
+			web3.currentProvider.sendAsync({
+				jsonrpc: "2.0",
+				method: "evm_increaseTime",
+				params: [(3600 * 12) + 1],
+				id: 12345
+			}, function (err, result) {
+
+			});
+
+			await contract.setPhase(3);
+			assert.equal(await contract.getCurrentPhase(), 3);
+			// end of the "put the contract in the main sale" block
+
+			// set the time in 2 weeks and 1 sec
+			web3.currentProvider.sendAsync({
+				jsonrpc: "2.0",
+				method: "evm_increaseTime",
+				params: [(3600 * 24 * 14) + 1],
+				id: 12345
+			}, function (err, result) {
+
+			});
+
+			await contract.setPhase(4);
+			assert.equal(await contract.getCurrentPhase(), 4);
+
+			await contract.activateToken();
+			assert.equal(await token.activated(), true);
+		});
+
+		it('should not allow token transfers if token is not activated', async function () {
+			// add the contributor1 in the whitelist during the presale
+			await contract.addToWhitelist([contributor1]);
+			assert.equal(await contract.checkWhitelisted(contributor1), true);
+
+			// this block set the contract in the main sale with a buy price of 1 000 000 GLN = 1 ETH
+			// allowing to reach the hardcap with 192 ETH
+
+			const buyPrice = 1000000;
+			await contract.setBuyPrice(buyPrice);
+
+			await contract.setPhase(1);
+			assert.equal(await contract.getCurrentPhase(), 1);
+			await contract.setIndividualWeiCap(1000 * ETH);
+
+			assert.equal(await contract.getIndividualWeiCap(), 1000 * ETH);
+			await contract.setPhase(2);
+			assert.equal(await contract.getCurrentPhase(), 2);
+
+			// set the time in 12 hours and 1 sec
+			web3.currentProvider.sendAsync({
+				jsonrpc: "2.0",
+				method: "evm_increaseTime",
+				params: [(3600 * 12) + 1],
+				id: 12345
+			}, function (err, result) {
+
+			});
+
+			await contract.setPhase(3);
+			assert.equal(await contract.getCurrentPhase(), 3);
+			// end of the "put the contract in the main sale" block
+
+			const contributingEth = 100;
+
+			await contract.sendTransaction({
+				value: contributingEth * ETH,
+				from: contributor1
+			});
+
+			assert.equal(web3.eth.getBalance(await contract.address).toNumber(), contributingEth * ETH)
+
+			assert.equal((await token.balanceOf(contributor1)).toNumber(), contributingEth * buyPrice * GLN);
+
+			// set the time in 2 weeks and 1 sec
+			web3.currentProvider.sendAsync({
+				jsonrpc: "2.0",
+				method: "evm_increaseTime",
+				params: [(3600 * 24 * 14) + 1],
+				id: 12345
+			}, function (err, result) {
+
+			});
+
+			await contract.setPhase(4);
+			assert.equal(await contract.getCurrentPhase(), 4);
+
+			try {
+				await token.transfer(contributor2, 1000 * GLN, {
+					from: contributor1
+				});
+				assert.fail();
+			} catch (error) {
+				assert(error.toString().includes('revert'), error.toString());
+			}
+			
+		});
+
+		it('should allow token transfers if token is activated', async function () {
+			// add the contributor1 in the whitelist during the presale
+			await contract.addToWhitelist([contributor1]);
+			assert.equal(await contract.checkWhitelisted(contributor1), true);
+
+			// this block set the contract in the main sale with a buy price of 1 000 000 GLN = 1 ETH
+			// allowing to reach the hardcap with 192 ETH
+
+			const buyPrice = 1000000;
+			await contract.setBuyPrice(buyPrice);
+
+			await contract.setPhase(1);
+			assert.equal(await contract.getCurrentPhase(), 1);
+			await contract.setIndividualWeiCap(1000 * ETH);
+
+			assert.equal(await contract.getIndividualWeiCap(), 1000 * ETH);
+			await contract.setPhase(2);
+			assert.equal(await contract.getCurrentPhase(), 2);
+
+			// set the time in 12 hours and 1 sec
+			web3.currentProvider.sendAsync({
+				jsonrpc: "2.0",
+				method: "evm_increaseTime",
+				params: [(3600 * 12) + 1],
+				id: 12345
+			}, function (err, result) {
+
+			});
+
+			await contract.setPhase(3);
+			assert.equal(await contract.getCurrentPhase(), 3);
+			// end of the "put the contract in the main sale" block
+
+			const contributingEth = 100;
+
+			await contract.sendTransaction({
+				value: contributingEth * ETH,
+				from: contributor1
+			});
+
+			assert.equal(web3.eth.getBalance(await contract.address).toNumber(), contributingEth * ETH)
+
+			assert.equal((await token.balanceOf(contributor1)).toNumber(), contributingEth * buyPrice * GLN);
+
+			// set the time in 2 weeks and 1 sec
+			web3.currentProvider.sendAsync({
+				jsonrpc: "2.0",
+				method: "evm_increaseTime",
+				params: [(3600 * 24 * 14) + 1],
+				id: 12345
+			}, function (err, result) {
+
+			});
+
+			await contract.setPhase(4);
+			assert.equal(await contract.getCurrentPhase(), 4);
+
+			await contract.activateToken();
+			assert.equal(await token.activated(), true);
+
+			await token.transfer(contributor2, 1000 * GLN, {
+				from: contributor1
+			});
+			
+			assert.equal((await token.balanceOf(contributor2)).toNumber(), 1000 * GLN);
+		});
 	});
 
 	describe('Softcap & Refund', async function () {
-		it.skip('should not allow people to claim refund if sale is not over');
+		it.skip('should not allow people to claim refund during the presale');
+		it.skip('should not allow people to claim refund during the pause');
+		it.skip('should not allow people to claim refund during the safe sale');
+		it.skip('should not allow people to claim refund during the main sale');
 		it.skip('should allow people to claim refund after the sale is over, and softcap is not reached');
 		it.skip('should not allow people to claim refund after the sale is over, and softcap is reached');
 	});
