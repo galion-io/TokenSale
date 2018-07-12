@@ -140,14 +140,10 @@ contract GalionTokenSale is PhaseWhitelist {
 
     // allow a user to get refund before softcap is reached
     function refund(address contributor) public {
-        // if the main sale is over, put the contract in the phase TGE over
-        // this will allow contributors to get refund even if Galion does not set the phase from 3 to 4
-        if (phase == 3 && block.timestamp > mainsaleEnd) {
-            phase = 4;
-        }
 
         require(tokenSold < SOFTCAP);
-        require(phase >= 4);
+        // allow to get a refund if the phase is TGE over or if the main sale if over (timestamp)
+        require(phase >= 4 || block.timestamp > mainsaleEnd);
 
         uint256 contributedWei = contributed[contributor];
         require(contributedWei > 0);
