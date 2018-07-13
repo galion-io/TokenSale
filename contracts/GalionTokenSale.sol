@@ -67,15 +67,10 @@ contract GalionTokenSale is PhaseWhitelist {
     // ICO buy function
     // The sender can only buy if :
     // - the ICO is in progress (mainsale or presale)
-    // - the sender is whitelisted (for the current phase)
-    function buyGLN() public payable whitelisted {
+    // - the sender is whitelisted
+    function buyGLN() public payable whitelisted saleIsOn {
         // require the buy price to be set
         require(baseBuyPrice > 0);
-
-        // if the phase is not the presale (safeMainsale or mainSale) then we must check if the sale is over
-        if (phase > 0) {
-            require(block.timestamp <= mainsaleEnd);
-        }
 
         // Compute buy price (with bonus applied if presale is in progress)
         uint256 buyPrice = baseBuyPrice;
@@ -89,9 +84,9 @@ contract GalionTokenSale is PhaseWhitelist {
         }
 
         // individual cap check if current phase is safe mainsale
-        if (phase == 1) {
+        if (phase == 2) {
             if (block.timestamp >= safeMainsaleEnd) { // potentially switch to normal mainsale if time is elapsed
-                phase = 2;
+                phase = 3;
             } else {
                 uint256 futureContributedWei = contributed[msg.sender].add(msg.value);
                 require(futureContributedWei <= individualWeiCap);
@@ -110,6 +105,11 @@ contract GalionTokenSale is PhaseWhitelist {
         tokenSold = futureTokenSold;
         weiRaised = weiRaised.add(msg.value);
         token.mint(msg.sender, buyAmount);
+
+        // end the token generation event if the total token sold is the hard cap
+        if (tokenSold == HARDCAP) {
+            phase = 4;
+        }
     }
 
     // Set presale bonus
@@ -121,7 +121,8 @@ contract GalionTokenSale is PhaseWhitelist {
     // Set buy price (tokens per ETH, without bonus).
     // because both have 18 decimal, newBuyPrice is "how much token can be bought with 1 eth"
     function setBuyPrice(uint256 newBuyPrice) public onlyOwner {
-        require(phase == 0);
+        // the base price can only be changed before the main sale
+        require(phase < 2);
         require(newBuyPrice > 0);
 
         baseBuyPrice = newBuyPrice;
@@ -132,15 +133,17 @@ contract GalionTokenSale is PhaseWhitelist {
         // cannot withdraw if the soft cap is not reached
         require(tokenSold >= SOFTCAP);
         // cannot withdraw if the sale is not over
-        require(phase >= 3);
+        require(phase >= 4);
 
         COMPANY_ADDRESS.transfer(address(this).balance);
     }
 
     // allow a user to get refund before softcap is reached
     function refund(address contributor) public {
+
         require(tokenSold < SOFTCAP);
-        require(phase >= 3);
+        // allow to get a refund if the phase is TGE over or if the main sale if over (timestamp)
+        require(phase >= 4 || (phase == 3 && block.timestamp > mainsaleEnd));
 
         uint256 contributedWei = contributed[contributor];
         require(contributedWei > 0);
@@ -153,7 +156,7 @@ contract GalionTokenSale is PhaseWhitelist {
 
     // activate token after token generation even (enable the transfer() function of ERC20)
     function activateToken() public onlyOwner {
-        require(phase >= 3);
+        require(phase >= 4);
         require(tokenSold >= SOFTCAP); // cannot activate the token if the soft cap is not reached
 
         token.activate();
