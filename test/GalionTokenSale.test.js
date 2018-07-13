@@ -647,8 +647,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             assert.equal(await token.activated(), true);
         });
 
-        // test a activer après le merge dans master
-        it.skip('should not be able to activate token if the soft cap is not reached', async function () {
+        it('should not be able to activate token if the soft cap is not reached', async function () {
             await setContractToTGEOver(false);
 
             try {
