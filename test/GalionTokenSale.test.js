@@ -16,7 +16,10 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
     let timelock;
 
     var setContractToPausePhase = async function () {
-        await contract.setBuyPrice(BUYPRICE);
+        // during the presale, can only set the buyPrice once, so only set it if not set
+        if (await contract.baseBuyPrice() == 0) {
+            await contract.setBuyPrice(BUYPRICE);
+        }
         await contract.setPhase(1);
         await contract.addToWhitelist([whitelistedInPause]);
     }
@@ -208,7 +211,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             }
         });
     });
-    
+
     describe('Presale', async function () {
         it('should allow to add people to the whitelist', async function () {
             await contract.addToWhitelist([contributor]);
@@ -344,12 +347,12 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             await contract.setIndividualWeiCap(INDIVIDUAL_CAP * ETH);
             await contract.setPhase(2);
 
-            
+
             await contract.sendTransaction({
                 value: 10 * ETH,
                 from: whitelistedInPause
             });
-            
+
             assert.equal(web3.eth.getBalance(await contract.address), weiToContributeToReachPresaleHardCap + (10 * ETH));
             assert.equal(await token.balanceOf(whitelistedInPause), 10 * GLN * BUYPRICE);
         });
@@ -382,7 +385,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             assert.equal(await contract.getIndividualWeiCap(), 1 * ETH);
         });
     });
-    
+
     describe('Safe Mainsale', async function () {
         it('should not be able to start before individual cap is set', async function () {
             await setContractToPausePhase();
@@ -770,6 +773,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             } catch (error) {
                 assert(error.toString().includes('revert'), error.toString());
             }
+            
         });
 
         it('should not allow people to claim refund during the safe sale', async function () {
