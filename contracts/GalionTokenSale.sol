@@ -20,14 +20,12 @@ contract GalionTokenSale is PhaseWhitelist {
     TokenTimelock public teamLockAddress4;
     TokenTimelock public teamLockAddress5;
 
-    // max supply is 320 million with 18 decimals
-    uint256 public constant MAXSUPPLY = 320 * (10 ** 6) * (10 ** 18);
     // soft cap is 26% of total supply
-    uint256 public SOFTCAP = MAXSUPPLY.div(100).mul(26);
+    uint256 public constant SOFTCAP = 83 * (10 ** 6) * (10 ** 18);
     // presale cap is 50% of total supply
-    uint256 public PRESALECAP = MAXSUPPLY.div(100).mul(50);
+    uint256 public constant PRESALECAP = 160 * (10 ** 6) * (10 ** 18);
     // hard cap is 60% of total supply
-    uint256 public HARDCAP = MAXSUPPLY.div(100).mul(60);
+    uint256 public constant HARDCAP = 192 * (10 ** 6) * (10 ** 18);
 
     // buy price = how much token can 1 ETH buy
     uint256 public baseBuyPrice = 0;
@@ -38,6 +36,7 @@ contract GalionTokenSale is PhaseWhitelist {
     // amount of raised money in wei
     uint256 public weiRaised = 0;
     uint256 public tokenSold = 0;
+    uint256 public weiSoftCap = 0;
 
     constructor() public {
         // Token contract creation
@@ -116,18 +115,29 @@ contract GalionTokenSale is PhaseWhitelist {
 
     // Set buy price (tokens per ETH, without bonus).
     // because both have 18 decimal, newBuyPrice is "how much token can be bought with 1 eth"
+    // can and must be set once during the presale or nobody can contribute
+    // can be reset during the pause phase (to adjust the price)
+    // will recalc the soft cap wei
     function setBuyPrice(uint256 newBuyPrice) public onlyOwner {
         // the base price can only be changed before the main sale
         require(phase < 2);
+        // can be set only once during presale
+        if (phase == 0) {
+            require(baseBuyPrice == 0);
+        }
+
         require(newBuyPrice > 0);
 
         baseBuyPrice = newBuyPrice;
+
+        // calculate the weiSoftCap
+        weiSoftCap = HARDCAP.div(baseBuyPrice).mul(26).div(100);
     }
 
     // Withdraw all ETH stored on the contract, by sending them to the company address
     function withdraw() public {
         // cannot withdraw if the soft cap is not reached
-        require(tokenSold >= SOFTCAP);
+        require(weiRaised >= weiSoftCap);
         // cannot withdraw if the sale is not over
         require(phase >= 4);
 
@@ -136,8 +146,8 @@ contract GalionTokenSale is PhaseWhitelist {
 
     // allow a user to get refund before softcap is reached
     function refund(address contributor) public {
-
-        require(tokenSold < SOFTCAP);
+        // cannot refund if the soft cap in wei has been reached
+        require(weiRaised < weiSoftCap);
         // allow to get a refund if the phase is TGE over or if the main sale if over (timestamp)
         require(phase >= 4 || (phase == 3 && block.timestamp > mainsaleEnd));
 
@@ -153,7 +163,8 @@ contract GalionTokenSale is PhaseWhitelist {
     // activate token after token generation even (enable the transfer() function of ERC20)
     function activateToken() public onlyOwner {
         require(phase >= 4);
-        require(tokenSold >= SOFTCAP); // cannot activate the token if the soft cap is not reached
+        // cannot activate the token if the soft cap is not reached
+        require(weiRaised >= weiSoftCap);
 
         token.activate();
         token.transferOwnership(owner);
