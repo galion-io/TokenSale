@@ -20,12 +20,14 @@ contract GalionTokenSale is PhaseWhitelist {
     TokenTimelock public teamLockAddress4;
     TokenTimelock public teamLockAddress5;
 
+    // max supply is 320 million with 18 decimals
+    uint256 public constant MAXSUPPLY = 320 * (10 ** 6) * (10 ** 18);
     // soft cap is 26% of total supply
-    uint256 public constant SOFTCAP = 83 * (10 ** 6) * (10 ** 18);
+    uint256 public constant SOFTCAP = MAXSUPPLY.div(100).mul(26);
     // presale cap is 50% of total supply
-    uint256 public constant PRESALECAP = 160 * (10 ** 6) * (10 ** 18);
+    uint256 public constant PRESALECAP = MAXSUPPLY.div(100).mul(50);
     // hard cap is 60% of total supply
-    uint256 public constant HARDCAP = 192 * (10 ** 6) * (10 ** 18);
+    uint256 public constant HARDCAP = MAXSUPPLY.div(100).mul(60);
 
     // buy price = how much token can 1 ETH buy
     uint256 public baseBuyPrice = 0;
