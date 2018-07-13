@@ -4,7 +4,7 @@ const TokenTimelockContract = artifacts.require('./contracts/OpenZeppelin/TokenT
 
 const ETH = 1e+18;
 const GLN = 1e+18;
-const BONUS = 1.2;
+const BONUS = 1.3;
 const BUYPRICE = 1000000;
 const INDIVIDUAL_CAP = 100;
 const COMPANY_ADDRESS = "0x849F14948588d2bDe7a3ff68DE9269b2160483C1";
@@ -136,6 +136,79 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
         });
     });
 
+    describe('Owner only functions', async function () {
+        it('should not be able to set the buy price if not the owner', async function () {
+            try {
+                await contract.setBuyPrice(5000, {
+                    from: contributor
+                });
+                assert.fail();
+            } catch (error) {
+                assert(error.toString().includes('revert'), error.toString());
+            }
+        });
+
+        it('should not be able to activate the token if not the owner', async function () {
+            await setContractToTGEOver(softCapReached = true);
+
+            try {
+                await contract.activateToken({
+                    from: contributor
+                });
+                assert.fail();
+            } catch (error) {
+                assert(error.toString().includes('revert'), error.toString());
+            }
+        });
+
+        it('should not be able to set the individual wei cap if not the owner', async function () {
+            await contract.setPhase(1);
+            try {
+                await contract.setIndividualWeiCap(1 * ETH, {
+                    from: contributor
+                });
+                assert.fail();
+            } catch (error) {
+                assert(error.toString().includes('revert'), error.toString());
+            }
+        });
+
+        it('should not be able to set the phase if not the owner', async function () {
+            try {
+                await contract.setPhase(1, {
+                    from: contributor
+                });
+                assert.fail();
+            } catch (error) {
+                assert(error.toString().includes('revert'), error.toString());
+            }
+        });
+
+        it('should not be able to whitelist an address price if not the owner', async function () {
+            try {
+                await contract.addToWhitelist([notWhitelisted], {
+                    from: contributor
+                });
+                assert.fail();
+            } catch (error) {
+                assert(error.toString().includes('revert'), error.toString());
+                assert.equal(await contract.checkWhitelisted(notWhitelisted), false);
+            }
+        });
+
+        it('should not be able to remove from whitelist if not the owner', async function () {
+            try {
+                await contract.removeFromWhitelist([whitelistedInPresale], {
+                    from: contributor
+                });
+                assert.fail();
+            } catch (error) {
+                assert(error.toString().includes('revert'), error.toString());
+                assert.equal(await contract.checkWhitelisted(whitelistedInPresale), true);
+            }
+        });
+    });
+    
     describe('Presale', async function () {
         it('should allow to add people to the whitelist', async function () {
             await contract.addToWhitelist([contributor]);
@@ -217,25 +290,35 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
         });
 
         it('should allow to mint exactly the presale hard cap, considering the bonus', async function () {
-            // buy price set to 2 000 000 means that 66,66666... eth are enough to reach almost exactly the presale cap
-            buyPrice = 2000000;
-            contributingEth = 66.6666;
-            await contract.setBuyPrice(buyPrice);
+            var preSaleHardCap = await contract.PRESALECAP();
+            await contract.setBuyPrice(BUYPRICE);
+            // the -100 000 wei is here to suppress round issues due to the 30% bonus
+            var weiToContributeToReachPresaleHardCap = (preSaleHardCap / BONUS / BUYPRICE) - 100000;
 
             await contract.sendTransaction({
-                value: contributingEth * ETH,
+                value: weiToContributeToReachPresaleHardCap,
                 from: whitelistedInPresale
             });
-            assert.equal(web3.eth.getBalance(await contract.address), contributingEth * ETH)
-            assert.equal(await token.balanceOf(whitelistedInPresale), contributingEth * buyPrice * BONUS * GLN)
-        });
-    });
 
-    describe('Owner only functions', async function () {
-        it('should not be able to set the buy price if not the owner', async function () {
+            assert.equal(web3.eth.getBalance(await contract.address), weiToContributeToReachPresaleHardCap);
+            assert.equal(await token.balanceOf(whitelistedInPresale), weiToContributeToReachPresaleHardCap * BUYPRICE * BONUS);
+        });
+
+        it('should not allow to contribute after the hardcap is reached in the presale, considering the bonus', async function () {
+            var preSaleHardCap = await contract.PRESALECAP();
+            await contract.setBuyPrice(BUYPRICE);
+            // the -100 000 wei is here to suppress round issues due to the 30% bonus
+            var weiToContributeToReachPresaleHardCap = (preSaleHardCap / BONUS / BUYPRICE) - 100000;
+
+            await contract.sendTransaction({
+                value: weiToContributeToReachPresaleHardCap,
+                from: whitelistedInPresale
+            });
+
             try {
-                await contract.setBuyPrice(5000, {
-                    from: contributor
+                await contract.sendTransaction({
+                    value: 10 * ETH,
+                    from: whitelistedInPresale
                 });
                 assert.fail();
             } catch (error) {
@@ -243,75 +326,32 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             }
         });
 
-        it('should not be able to set the presale bonus if not the owner', async function () {
-            try {
-                await contract.setPreSaleBonus(130, {
-                    from: contributor
-                });
-                assert.fail();
-            } catch (error) {
-                assert(error.toString().includes('revert'), error.toString());
-            }
-        });
 
-        it('should not be able to activate the token if not the owner', async function () {
-            await setContractToTGEOver(softCapReached = true);
+        it('should allow to contribute after the hardcap is reached in the presale if the phase is now the sale', async function () {
+            var preSaleHardCap = await contract.PRESALECAP();
+            await contract.setBuyPrice(BUYPRICE);
+            // the -100 000 wei is here to suppress round issues due to the 30% bonus
+            var weiToContributeToReachPresaleHardCap = (preSaleHardCap / BONUS / BUYPRICE) - 100000;
 
-            try {
-                await contract.activateToken({
-                    from: contributor
-                });
-                assert.fail();
-            } catch (error) {
-                assert(error.toString().includes('revert'), error.toString());
-            }
-        });
-
-        it('should not be able to set the individual wei cap if not the owner', async function () {
+            // reach the presale hardcap
+            await contract.sendTransaction({
+                value: weiToContributeToReachPresaleHardCap,
+                from: whitelistedInPresale
+            });
+            // set the contract in the main sale phase
             await contract.setPhase(1);
-            try {
-                await contract.setIndividualWeiCap(1 * ETH, {
-                    from: contributor
-                });
-                assert.fail();
-            } catch (error) {
-                assert(error.toString().includes('revert'), error.toString());
-            }
-        });
+            await contract.addToWhitelist([whitelistedInPause]);
+            await contract.setIndividualWeiCap(INDIVIDUAL_CAP * ETH);
+            await contract.setPhase(2);
 
-        it('should not be able to set the phase if not the owner', async function () {
-            try {
-                await contract.setPhase(1, {
-                    from: contributor
-                });
-                assert.fail();
-            } catch (error) {
-                assert(error.toString().includes('revert'), error.toString());
-            }
-        });
-
-        it('should not be able to whitelist an address price if not the owner', async function () {
-            try {
-                await contract.addToWhitelist([notWhitelisted], {
-                    from: contributor
-                });
-                assert.fail();
-            } catch (error) {
-                assert(error.toString().includes('revert'), error.toString());
-                assert.equal(await contract.checkWhitelisted(notWhitelisted), false);
-            }
-        });
-
-        it('should not be able to remove from whitelist if not the owner', async function () {
-            try {
-                await contract.removeFromWhitelist([whitelistedInPresale], {
-                    from: contributor
-                });
-                assert.fail();
-            } catch (error) {
-                assert(error.toString().includes('revert'), error.toString());
-                assert.equal(await contract.checkWhitelisted(whitelistedInPresale), true);
-            }
+            
+            await contract.sendTransaction({
+                value: 10 * ETH,
+                from: whitelistedInPause
+            });
+            
+            assert.equal(web3.eth.getBalance(await contract.address), weiToContributeToReachPresaleHardCap + (10 * ETH));
+            assert.equal(await token.balanceOf(whitelistedInPause), 10 * GLN * BUYPRICE);
         });
     });
 
@@ -342,7 +382,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             assert.equal(await contract.getIndividualWeiCap(), 1 * ETH);
         });
     });
-
+    
     describe('Safe Mainsale', async function () {
         it('should not be able to start before individual cap is set', async function () {
             await setContractToPausePhase();
@@ -379,8 +419,8 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
                 from: whitelistedInPresale
             });
 
-            assert.equal(web3.eth.getBalance(await contract.address),  (INDIVIDUAL_CAP - 1) * ETH)
-            assert.equal((await token.balanceOf(whitelistedInPresale)),  (INDIVIDUAL_CAP - 1) * BUYPRICE * GLN);
+            assert.equal(web3.eth.getBalance(await contract.address), (INDIVIDUAL_CAP - 1) * ETH)
+            assert.equal((await token.balanceOf(whitelistedInPresale)), (INDIVIDUAL_CAP - 1) * BUYPRICE * GLN);
         });
 
         it('a valid contribution after the 12 hours should change the phase from 2 to 3', async function () {
