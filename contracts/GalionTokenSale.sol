@@ -30,8 +30,8 @@ contract GalionTokenSale is PhaseWhitelist {
     // buy price = how much token can 1 ETH buy
     uint256 public baseBuyPrice = 0;
 
-    // presale bonus (in multiplier percent). E.g. 120 = 120% multiplier = *1.2 = 20% bonus.
-    uint256 public preSaleBonus = 120;
+    // presale bonus (in multiplier percent). E.g. 130 = 130% multiplier = *1.3 = 30% bonus.
+    uint256 public preSaleBonus = 130;
 
     // amount of raised money in wei
     uint256 public weiRaised = 0;
@@ -110,12 +110,6 @@ contract GalionTokenSale is PhaseWhitelist {
         if (tokenSold == HARDCAP) {
             phase = 4;
         }
-    }
-
-    // Set presale bonus
-    function setPreSaleBonus(uint256 newBonus) public onlyOwner {
-        require(newBonus >= 100);
-        preSaleBonus = newBonus;
     }
 
     // Set buy price (tokens per ETH, without bonus).
