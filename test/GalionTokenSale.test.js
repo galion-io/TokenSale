@@ -64,7 +64,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
         web3.currentProvider.sendAsync({
             jsonrpc: "2.0",
             method: "evm_increaseTime",
-            params: [(3600 * 24 * 14) + 1],
+            params: [(3600 * 24 * 21) + 1],
             id: 12345
         }, function (err, result) {});
 
@@ -565,7 +565,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             web3.currentProvider.sendAsync({
                 jsonrpc: "2.0",
                 method: "evm_increaseTime",
-                params: [(3600 * 24 * 14) + 1],
+                params: [(3600 * 24 * 21) + 1],
                 id: 12345
             }, function (err, result) {});
 
@@ -592,7 +592,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             web3.currentProvider.sendAsync({
                 jsonrpc: "2.0",
                 method: "evm_increaseTime",
-                params: [(3600 * 24 * 14) + 1],
+                params: [(3600 * 24 * 21) + 1],
                 id: 12345
             }, function (err, result) {
 
@@ -661,7 +661,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             web3.currentProvider.sendAsync({
                 jsonrpc: "2.0",
                 method: "evm_increaseTime",
-                params: [(3600 * 24 * 14) + 1],
+                params: [(3600 * 24 * 21) + 1],
                 id: 12345
             }, function (err, result) {});
 
