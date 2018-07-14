@@ -48,7 +48,7 @@ contract PhaseWhitelist is Ownable {
             // set the end of safe mainsale timestamp
             safeMainsaleEnd = block.timestamp + 12 hours;
             // set the end of the main sale timestamp
-            mainsaleEnd = block.timestamp + 2 weeks;
+            mainsaleEnd = block.timestamp + 3 weeks;
         }
         
         // can only change phase from 2 (safe main sale) to 3 (main sale) if the end timestamp of the safe main sale is reached
