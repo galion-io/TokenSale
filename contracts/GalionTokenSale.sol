@@ -10,8 +10,7 @@ import "./PhaseWhitelist.sol";
 // developed by contact@it.galion.io
 // ----------------------------------------------------------------------------
 contract GalionTokenSale is PhaseWhitelist {
-    using SafeMath
-    for uint256;
+    using SafeMath for uint256;
 
     GalionToken public token;
     address public constant COMPANY_ADDRESS = address(0x849F14948588d2bDe7a3ff68DE9269b2160483C1);
