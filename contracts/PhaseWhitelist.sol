@@ -22,7 +22,7 @@ contract PhaseWhitelist is Ownable {
     uint256 public individualWeiCap = 0;
     
     // presale bonus token release date = 2019/01/01
-    uint public presaleReleaseDate = 1546300800;
+    uint public presaleReleaseDate;
     // mapping of timelock contracts used in the presale to lock bonus token until 2019/01/01
     mapping(address => address) timelock;
 

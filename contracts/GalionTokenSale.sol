@@ -43,6 +43,9 @@ contract GalionTokenSale is PhaseWhitelist {
     constructor() public {
         // Token contract creation
         token = new GalionToken();
+
+        // set the presale release date in 5 months (should be around 3 month after the end of the sale)
+        presaleReleaseDate = block.timestamp + 140 days;
     }
 
     // Default function called when someone is sending ETH : redirects to the ICO buy function.
