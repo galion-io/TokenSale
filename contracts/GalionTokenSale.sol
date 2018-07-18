@@ -98,7 +98,7 @@ contract GalionTokenSale is PhaseWhitelist {
             // if the contributor does not have a contract yet, create it
             if (tokenTimeLockAddress == address(0)) {
                 // create the timelock contract with a release date in 3 months
-                tokenTimeLockAddress = new TokenTimelock(token, address(msg.sender), block.timestamp + 14 weeks);
+                tokenTimeLockAddress = new TokenTimelock(token, address(msg.sender), block.timestamp + 10 weeks);
                 timelock[msg.sender] = tokenTimeLockAddress;
             }
 
