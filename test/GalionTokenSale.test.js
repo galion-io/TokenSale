@@ -210,7 +210,6 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
         it('Should not be able to set the eth price two times', async function () {
             await tokenSaleContract.setEthPrice(ETH_PRICE);
             try {
-
                 await tokenSaleContract.setEthPrice(10);
                 assert.fail();
             } catch (error) {
@@ -363,7 +362,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             assert.equal(await token.balanceOf(whitelistedInPresale), weiToContributeToReachPresaleHardCap * buyPrice);
         });
 
-        it('should not allow to contribute after the hardcap is reached in the presale, considering the bonus', async function () {
+        it('should not allow to contribute after the hardcap is reached in the presale', async function () {
             await tokenSaleContract.setEthPrice(ETH_PRICE);
             var weiToContributeToReachPresaleHardCap = 80 * ETH;
             await tokenSaleContract.sendTransaction({
@@ -590,7 +589,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
     });
 
     contract('Mainsale', async function () {
-        it('should not be able to start the main sale using the set phase function during the presale', async function () {
+        it('should not be able to start the main sale using the set phase function during the safe mainsale', async function () {
             await setContractToSafeMainSale();
 
             try {
@@ -959,10 +958,8 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
         it('should not allow people to claim refund during the pause', async function () {
             await tokenSaleContract.setEthPrice(ETH_PRICE);
 
-            const contributingEth = 1;
-
             await tokenSaleContract.sendTransaction({
-                value: contributingEth * ETH,
+                value: 1 * ETH,
                 from: whitelistedInPresale
             });
 
@@ -985,13 +982,13 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
 
             await tokenSaleContract.sendTransaction({
                 value: 1 * ETH,
-                from: whitelistedInPresale
+                from: whitelistedInSafeMainSale
             });
 
             // try to get refund
             try {
-                await tokenSaleContract.refund(whitelistedInPresale, {
-                    from: whitelistedInPresale
+                await tokenSaleContract.refund(whitelistedInSafeMainSale, {
+                    from: whitelistedInSafeMainSale
                 });
                 assert.fail();
             } catch (error) {
@@ -1004,13 +1001,13 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
 
             await tokenSaleContract.sendTransaction({
                 value: 1 * ETH,
-                from: whitelistedInPresale
+                from: whitelistedInMainsale
             });
 
             // try to get refund
             try {
-                await tokenSaleContract.refund(whitelistedInPresale, {
-                    from: whitelistedInPresale
+                await tokenSaleContract.refund(whitelistedInMainsale, {
+                    from: whitelistedInMainsale
                 });
                 assert.fail();
             } catch (error) {
@@ -1143,7 +1140,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             }
         });
 
-        it('Should not allow presale contributor to claim their token before 140 days', async function () {
+        it('Should not allow presale contributor to claim their token before 90 days', async function () {
             var contributingEth = 30;
             await tokenSaleContract.setEthPrice(ETH_PRICE);
             await tokenSaleContract.sendTransaction({
@@ -1175,7 +1172,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             }
         });
 
-        it('Should allow presale contributor to claim their token after 140 days', async function () {
+        it('Should allow presale contributor to claim their token after 90 days', async function () {
             contributingEth = 50;
             await tokenSaleContract.setEthPrice(ETH_PRICE);
             var buyPrice = await tokenSaleContract.baseBuyPrice();
@@ -1202,11 +1199,12 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             await tokenSaleContract.activateToken();
             var timelock = TokenTimelockContract.at(tokenAddr);
 
-            // set the blocktime approximatively the 2019/01/01
+            // wait for 69 days because we already waited 21 weeks for the mainsale to finish
+            // and the presale vesting is 90 days
             web3.currentProvider.sendAsync({
                 jsonrpc: "2.0",
                 method: "evm_increaseTime",
-                params: [(3600 * 24 * 140) + 1],
+                params: [(3600 * 24 * 69) + 1],
                 id: 12345
             }, function (err, result) {});
 
