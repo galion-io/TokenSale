@@ -42,9 +42,6 @@ contract GalionTokenSale is PhaseWhitelist {
     constructor() public {
         // Token contract creation
         token = new GalionToken();
-
-        // set the presale release date in 5 months (should be around 3 month after the end of the sale)
-        presaleReleaseDate = block.timestamp + 140 days;
     }
 
     // Default function called when someone is sending ETH : redirects to the ICO buy function.
@@ -100,11 +97,12 @@ contract GalionTokenSale is PhaseWhitelist {
             address tokenTimeLockAddress = timelock[msg.sender];
             // if the contributor does not have a contract yet, create it
             if (tokenTimeLockAddress == address(0)) {
-                tokenTimeLockAddress = new TokenTimelock(token, address(msg.sender), presaleReleaseDate);
+                // create the timelock contract with a release date in 3 months
+                tokenTimeLockAddress = new TokenTimelock(token, address(msg.sender), block.timestamp + 14 weeks);
                 timelock[msg.sender] = tokenTimeLockAddress;
             }
 
-            // here, the contract time lock address is set (already exist or new contract has been deployed)
+            // here, the contract time lock address is set (already exists or new contract has been deployed)
             // mint the bonus token to the contract
             token.mint(tokenTimeLockAddress, buyAmount.mul(PRESALEBONUS).div(100));
         }
