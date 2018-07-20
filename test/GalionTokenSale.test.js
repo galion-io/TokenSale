@@ -840,14 +840,8 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             var lowBound = 0.1999 * await token.totalSupply();
 
             var tokenNumForCompany = (await token.balanceOf(COMPANY_ADDRESS)).toNumber()
-            if (tokenNumForCompany > highBound) {
-                console.log("company has " + tokenNumForCompany + " which is more than 10%");
-                assert.fail();
-            }
-            if (tokenNumForCompany < lowBound) {
-                console.log("company has " + tokenNumForCompany + " which is less than 10%");
-                assert.fail();
-            }
+            assert(tokenNumForCompany < highBound, 'company has ' + tokenNumForCompany + ' which is more than 20%');
+            assert(tokenNumForCompany > lowBound, 'company has ' + tokenNumForCompany + ' which is less than 20%');
         });
 
         it('should send 10% of supply to advisory wallet', async function () {
@@ -860,15 +854,9 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             var highBound = 0.1001 * await token.totalSupply();
             var lowBound = 0.0999 * await token.totalSupply();
 
-            var tokenNumForAdvisory = (await token.balanceOf(ADVISORY_ADDRESS)).toNumber()
-            if (tokenNumForAdvisory > highBound) {
-                console.log("advisory has " + tokenNumForAdvisory + " which is more than 10%");
-                assert.fail();
-            }
-            if (tokenNumForAdvisory < lowBound) {
-                console.log("advisory has " + tokenNumForAdvisory + " which is less than 10%");
-                assert.fail();
-            }
+            var tokenNumForAdvisory = (await token.balanceOf(ADVISORY_ADDRESS)).toNumber();
+            assert(tokenNumForAdvisory < highBound, 'advisory has ' + tokenNumForAdvisory + ' which is more than 10%');
+            assert(tokenNumForAdvisory > lowBound, 'advisory has ' + tokenNumForAdvisory + ' which is less than 10%');
         });
 
         it('should vest 2% of max supply for each 5 team member & create timelocks', async function () {
@@ -882,54 +870,24 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             var lowBound = 0.01999 * await token.totalSupply();
 
             var tokenNumFounder1 = (await token.balanceOf(await tokenSaleContract.teamLockAddress1())).toNumber();
-            if (tokenNumFounder1 > highBound) {
-                console.log("founder1 has " + tokenNumFounder1 + " which is more than 2%");
-                assert.fail();
-            }
-            if (tokenNumFounder1 < lowBound) {
-                console.log("founder1 has " + tokenNumFounder1 + " which is less than 2%");
-                assert.fail();
-            }
+            assert(tokenNumFounder1 < highBound, 'founder 1 has ' + tokenNumFounder1 + ' which is more than 2%');
+            assert(tokenNumFounder1 > lowBound, 'founder 1 has ' + tokenNumFounder1 + ' which is less than 2%');
 
             var tokenNumFounder2 = (await token.balanceOf(await tokenSaleContract.teamLockAddress2())).toNumber();
-            if (tokenNumFounder2 > highBound) {
-                console.log("founder2 has " + tokenNumFounder2 + " which is more than 2%");
-                assert.fail();
-            }
-            if (tokenNumFounder2 < lowBound) {
-                console.log("founder2 has " + tokenNumFounder2 + " which is less than 2%");
-                assert.fail();
-            }
+            assert(tokenNumFounder2 < highBound, 'founder 2 has ' + tokenNumFounder2 + ' which is more than 2%');
+            assert(tokenNumFounder2 > lowBound, 'founder 2 has ' + tokenNumFounder2 + ' which is less than 2%');
 
             var tokenNumFounder3 = (await token.balanceOf(await tokenSaleContract.teamLockAddress3())).toNumber();
-            if (tokenNumFounder3 > highBound) {
-                console.log("Founder3 has " + tokenNumFounder3 + " which is more than 2%");
-                assert.fail();
-            }
-            if (tokenNumFounder3 < lowBound) {
-                console.log("Founder3 has " + tokenNumFounder3 + " which is less than 2%");
-                assert.fail();
-            }
+            assert(tokenNumFounder3 < highBound, 'founder 3 has ' + tokenNumFounder3 + ' which is more than 2%');
+            assert(tokenNumFounder3 > lowBound, 'founder 3 has ' + tokenNumFounder3 + ' which is less than 2%');
 
             var tokenNumFounder4 = (await token.balanceOf(await tokenSaleContract.teamLockAddress4())).toNumber();
-            if (tokenNumFounder4 > highBound) {
-                console.log("Founder4 has " + tokenNumFounder4 + " which is more than 2%");
-                assert.fail();
-            }
-            if (tokenNumFounder4 < lowBound) {
-                console.log("Founder4 has " + tokenNumFounder4 + " which is less than 2%");
-                assert.fail();
-            }
+            assert(tokenNumFounder4 < highBound, 'founder 4 has ' + tokenNumFounder4 + ' which is more than 2%');
+            assert(tokenNumFounder4 > lowBound, 'founder 4 has ' + tokenNumFounder4 + ' which is less than 2%');
 
             var tokenNumFounder5 = (await token.balanceOf(await tokenSaleContract.teamLockAddress5())).toNumber();
-            if (tokenNumFounder5 > highBound) {
-                console.log("Founder5 has " + tokenNumFounder5 + " which is more than 2%");
-                assert.fail();
-            }
-            if (tokenNumFounder5 < lowBound) {
-                console.log("Founder5 has " + tokenNumFounder5 + " which is less than 2%");
-                assert.fail();
-            }
+            assert(tokenNumFounder5 < highBound, 'founder 5 has ' + tokenNumFounder5 + ' which is more than 2%');
+            assert(tokenNumFounder5 > lowBound, 'founder 5 has ' + tokenNumFounder5 + ' which is less than 2%');
         });
     });
 
