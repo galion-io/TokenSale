@@ -108,8 +108,6 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             assert.equal(await token.activated(), false);
         });
 
-
-
         it('should deploy with the phase equals to 0', async function () {
             assert.equal(await tokenSaleContract.getCurrentPhase(), 0);
         });
@@ -163,7 +161,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             }
         });
 
-        it('should not be able to whitelist an address price if not the owner', async function () {
+        it('should not be able to whitelist an address if not the owner', async function () {
             try {
                 await tokenSaleContract.addToWhitelist([notWhitelisted], {
                     from: contributor
@@ -194,7 +192,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             assert.equal(addr, '0x0000000000000000000000000000000000000000');
         });
 
-        it('SHould be able to set the eth price in dollar', async function () {
+        it('Should be able to set the eth price in dollar', async function () {
             await tokenSaleContract.setEthPrice(ETH_PRICE);
             var weiHardCap = await tokenSaleContract.weiHardCap();
             // the hardcap is the amount of wei needed to raise 9 500 000 $
@@ -408,13 +406,12 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
     });
 
     contract('Pause phase', async function () {
-
-        it('should be able to pause the sale', async function () {
+        it('should be able to pause the sale after presale', async function () {
             await tokenSaleContract.setPhase(1);
             assert.equal(await tokenSaleContract.getCurrentPhase(), 1);
         });
 
-        it('should no be able to contribute during the pause', async function () {
+        it('should not be able to contribute during the pause', async function () {
             await setContractToPausePhase();
 
             try {
@@ -474,6 +471,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
                 assert(error.toString().includes('revert'), error.toString());
             }
         });
+
         it('should be able to set individual cap & start safe mainsale', async function () {
             await setContractToSafeMainSale();
             assert.equal(await tokenSaleContract.getCurrentPhase(), 2);
@@ -804,7 +802,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             assert.equal((await token.balanceOf(notWhitelisted)), 1000 * GLN);
         });
 
-        it('should allow to withdraw ether if the soft cap is reached', async function () {
+        it('should allow to withdraw ether to Galion multisig if the soft cap is reached', async function () {
             // setting true means the soft cap is reached and the whitelistedInPresale contributor has tokens
             await setContractToTGEOver(true);
 
@@ -827,7 +825,6 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
                 assert(error.toString().includes('revert'), error.toString());
             }
         });
-
 
         it('should send 20% of supply to company wallet', async function () {
             await setContractToTGEOver(true);
@@ -865,7 +862,6 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             await tokenSaleContract.activateToken();
 
             // due to rounding issue, will test with greater and lower than
-
             var highBound = 0.02001 * await token.totalSupply();
             var lowBound = 0.01999 * await token.totalSupply();
 
