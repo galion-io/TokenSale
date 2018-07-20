@@ -837,7 +837,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             // due to rounding issue, will test with greater and lower than
 
             var highBound = 0.2001 * await token.totalSupply();
-            var lowBound = 0.01999 * await token.totalSupply();
+            var lowBound = 0.1999 * await token.totalSupply();
 
             var tokenNumForCompany = (await token.balanceOf(COMPANY_ADDRESS)).toNumber()
             if (tokenNumForCompany > highBound) {
