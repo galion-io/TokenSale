@@ -20,6 +20,9 @@ contract PhaseWhitelist is Ownable {
     // individual wei cap during safe sale, must be set before calling the"setSaleStartBlock" and used to allow
     // every whitelisted user to have a share
     uint256 public individualWeiCap = 0;
+    
+    // mapping of timelock contracts used in the presale to lock bonus token until 2019/01/01
+    mapping(address => address) timelock;
 
     // Indicator of the crowdsale phase (0 = presale, 1 = pause, 2 = safe mainsale, 3 = mainsale, 4 = TGE over)
     uint8 public phase = 0;
@@ -48,7 +51,7 @@ contract PhaseWhitelist is Ownable {
             // set the end of safe mainsale timestamp
             safeMainsaleEnd = block.timestamp + 12 hours;
             // set the end of the main sale timestamp
-            mainsaleEnd = block.timestamp + 2 weeks;
+            mainsaleEnd = block.timestamp + 3 weeks;
         }
         
         // can only change phase from 2 (safe main sale) to 3 (main sale) if the end timestamp of the safe main sale is reached
@@ -86,6 +89,11 @@ contract PhaseWhitelist is Ownable {
     // Public function to check if an address is in the whitelist
     function checkWhitelisted(address _addr) public view returns (bool) {
         return whitelist[_addr] > 0;
+    }
+
+    // Public function to check the address of the time lock contract for a contributor
+    function getTimelockContractAddress(address _addr) public view returns (address) {
+        return timelock[_addr];
     }
 
     // Add addresses to whitelist (level = presale).
