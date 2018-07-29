@@ -125,19 +125,6 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             }
         });
 
-        it('should not be able to activate the token if not the owner', async function () {
-            await setContractToTGEOver(softCapReached = true);
-
-            try {
-                await tokenSaleContract.activateToken({
-                    from: contributor
-                });
-                assert.fail();
-            } catch (error) {
-                assert(error.toString().includes('revert'), error.toString());
-            }
-        });
-
         it('should not be able to set the individual wei cap if not the owner', async function () {
             await tokenSaleContract.setPhase(1);
             try {
