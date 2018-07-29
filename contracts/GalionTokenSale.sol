@@ -167,8 +167,9 @@ contract GalionTokenSale is PhaseWhitelist {
     }
 
     // activate token after token generation even (enable the transfer() function of ERC20)
-    function activateToken() public onlyOwner {
-        require(phase >= 4);
+    function activateToken() public {
+        // allow to get a refund if the phase is TGE over or if the main sale if over (over the timestamp)
+        require(phase >= 4 || ((phase == 2 || phase == 3) && block.timestamp > mainsaleEnd));
         // cannot activate the token if the soft cap is not reached
         require(weiRaised >= weiSoftCap);
 
