@@ -87,9 +87,8 @@ contract GalionTokenSale is PhasedSale, SimpleWhitelist {
         // min contribution = 1 eth during presale
         require(msg.value >= 10 ** 18);
 
-        // Check for hardcap
-        uint256 futureWeiRaised = weiRaised.add(msg.value);
-        require(futureWeiRaised <= weiPresaleCap);
+        // Check for presale hardcap
+        require(weiRaised.add(msg.value) <= weiPresaleCap);
         
         // here, all the tests have been made to check if the user can buy tokens
         buyGLN();
@@ -112,12 +111,11 @@ contract GalionTokenSale is PhasedSale, SimpleWhitelist {
     function buySafeMainSale() private {
         require(phase == 2 && block.timestamp <= safeMainsaleEnd);
 
-        uint256 futureContributedWei = contributed[msg.sender].add(msg.value);
-        require(futureContributedWei <= individualWeiCap);
+        // check for presale cap
+        require(contributed[msg.sender].add(msg.value) <= individualWeiCap);
         
         // Check for hardcap
-        uint256 futureWeiRaised = weiRaised.add(msg.value);
-        require(futureWeiRaised <= weiHardCap);
+        require(weiRaised.add(msg.value) <= weiHardCap);
 
         // here, all the test have been made to check if the user can buy tokens
         buyGLN();
@@ -128,8 +126,7 @@ contract GalionTokenSale is PhasedSale, SimpleWhitelist {
         require(phase == 3 && block.timestamp <= mainsaleEnd);
         
         // Check for hardcap
-        uint256 futureWeiRaised = weiRaised.add(msg.value);
-        require(futureWeiRaised <= weiHardCap);
+        require(weiRaised.add(msg.value) <= weiHardCap);
 
         // here, all the test have been made to check if the user can buy tokens
         buyGLN();
