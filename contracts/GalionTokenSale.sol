@@ -3,13 +3,14 @@ pragma solidity ^0.4.24;
 import "./OpenZeppelin/SafeMath.sol";
 import "./OpenZeppelin/TokenTimelock.sol";
 import "./GalionToken.sol";
-import "./PhaseWhitelist.sol";
+import "./PhasedSale.sol";
+import "./SimpleWhitelist.sol";
 
 
 // Galion.io Token Contract : ERC20 Token
 // developed by contact@it.galion.io
 // ----------------------------------------------------------------------------
-contract GalionTokenSale is PhaseWhitelist {
+contract GalionTokenSale is PhasedSale, SimpleWhitelist {
     using SafeMath for uint256;
 
     GalionToken public token;
@@ -20,6 +21,14 @@ contract GalionTokenSale is PhaseWhitelist {
     TokenTimelock public teamLockAddress3;
     TokenTimelock public teamLockAddress4;
     TokenTimelock public teamLockAddress5;
+
+    // mapping of timelock contracts used in the presale to lock bonus token until 2019/01/01
+    mapping(address => address) timelock;
+
+    // store the amount contributed by each contributors
+    // used in case of refund in the claim function
+    // also used for the individual cap
+    mapping(address => uint256) internal contributed;
 
     // amount of dollar raised, costant, used to define softcap, presalecap and hardcap
     uint256 public constant DOLLARTARGET = 9500000;
@@ -138,6 +147,11 @@ contract GalionTokenSale is PhaseWhitelist {
 
         // the presale cap is 80% of the sale hardcap
         weiPresaleCap = weiHardCap.mul(80).div(100);
+    }
+
+    // Public function to check the address of the time lock contract for a contributor
+    function getTimelockContractAddress(address _addr) public view returns (address) {
+        return timelock[_addr];
     }
 
     // Withdraw all ETH stored on the contract, by sending them to the company address
