@@ -57,9 +57,7 @@ contract GalionTokenSale is PhasedSale, SimpleWhitelist {
     // The sender can only buy if :
     // - the ICO is in progress (mainsale or presale)
     // - the sender is whitelisted
-    function () public payable whitelisted {
-        // must not be in the pause phase
-        require(phase != 1 && phase < 4);
+    function () public payable whitelisted saleIsOn {
         // require the buy price to be set
         require(baseBuyPrice > 0);
         // presale
@@ -83,7 +81,6 @@ contract GalionTokenSale is PhasedSale, SimpleWhitelist {
         }
     }
 
-    // private function, can only be called from the contrat so no need to retest the whitelisted
     // you can only be in the buyPresale if the contributor is whitelisted and the phase is 0 and the buy price has been set
     function buyPresale() private {
         require(phase == 0);
@@ -111,7 +108,6 @@ contract GalionTokenSale is PhasedSale, SimpleWhitelist {
         token.mint(tokenTimeLockAddress, msg.value.mul(baseBuyPrice).mul(PRESALEBONUS).div(100));
     }
 
-    // private function, can only be called from the contrat so no need to retest the whitelisted
     // you can only be in the buySafeMainSale if the contributor is whitelisted and the phase is 2 and the buy price has been set
     function buySafeMainSale() private {
         require(phase == 2 && block.timestamp <= safeMainsaleEnd);
@@ -127,7 +123,6 @@ contract GalionTokenSale is PhasedSale, SimpleWhitelist {
         buyGLN();
     }
 
-    // private function, can only be called from the contrat so no need to retest the whitelisted
     // you can only be in the buyMainSale if the contributor is whitelisted and the phase is 0 and the buy price has been set
     function buyMainSale() private {
         require(phase == 3 && block.timestamp <= mainsaleEnd);
@@ -140,12 +135,10 @@ contract GalionTokenSale is PhasedSale, SimpleWhitelist {
         buyGLN();
     }
 
-    // this function can only be called from within buyPresale, buySafeMainSale or buyMainSale function where all test 
-    // have already been made
+    // this function can only be called from within buyPresale, buySafeMainSale or buyMainSale function
+    // where all test have already been made
     function buyGLN() private {
-
         // Mint token & assign to contributor
-        // Amount of tokens bought
         uint256 buyAmount = msg.value.mul(baseBuyPrice);
         contributed[msg.sender] = contributed[msg.sender].add(msg.value);
         weiRaised = weiRaised.add(msg.value);
