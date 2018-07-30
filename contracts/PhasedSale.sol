@@ -5,35 +5,23 @@ import "./OpenZeppelin/SafeMath.sol";
 
 // developed by contact@it.galion.io
 // ----------------------------------------------------------------------------
-contract PhaseWhitelist is Ownable {
+// The sale has 5 phases :
+// 0: private sale
+// 1: pause (between private sale & mainsale)
+// 2: safe mainsale (individual cap for a few hours)
+// 3: mainsale (lasts a few weeks until hardcap is reached)
+// 4: TGE event over, we can make the token tradeable & withdraw funds
+contract PhasedSale is Ownable {
     using SafeMath for uint256;
 
-    // Whitelisted addresses (who passed the KYC process)
-    // 0 : not whitelisted (default)
-    // > 0 : whitelisted
-    mapping(address => uint8) private whitelist;
-
-    // store the amount contributed by each contributors
-    // used in case of refund in the claim function
-    // also used for the individual cap
-    mapping(address => uint256) internal contributed;
     // individual wei cap during safe sale, must be set before calling the"setSaleStartBlock" and used to allow
     // every whitelisted user to have a share
     uint256 public individualWeiCap = 0;
-    
-    // mapping of timelock contracts used in the presale to lock bonus token until 2019/01/01
-    mapping(address => address) timelock;
 
     // Indicator of the crowdsale phase (0 = presale, 1 = pause, 2 = safe mainsale, 3 = mainsale, 4 = TGE over)
     uint8 public phase = 0;
     uint256 public safeMainsaleEnd = 0;
     uint256 public mainsaleEnd = 0;
-
-    // Modifier to check that the user is whitelisted
-    modifier whitelisted() {
-        require(whitelist[msg.sender] > 0);
-        _;
-    }
 
     // the sale if ON if the phase is 0 = presale
     // or if the phase is 2 or 3 (safe main sale and main sale) and the time is before the mainsale end
@@ -44,7 +32,7 @@ contract PhaseWhitelist is Ownable {
 
     function setPhase(uint8 nextPhase) public onlyOwner {
         require(nextPhase == phase + 1);
-        
+
         // if the phase is the pause phase (1), the next phase is the safe sale so we need to set the individual wei cap before
         if (phase == 1) {
             require(individualWeiCap > 0);
@@ -53,7 +41,7 @@ contract PhaseWhitelist is Ownable {
             // set the end of the main sale timestamp
             mainsaleEnd = block.timestamp + 3 weeks;
         }
-        
+
         // can only change phase from 2 (safe main sale) to 3 (main sale) if the end timestamp of the safe main sale is reached
         if (nextPhase == 3) {
             require(block.timestamp > safeMainsaleEnd);
@@ -84,29 +72,5 @@ contract PhaseWhitelist is Ownable {
     // Get the individual wei cap which is only used during the safe main sale
     function getIndividualWeiCap() public view returns (uint256) {
         return individualWeiCap;
-    }
-
-    // Public function to check if an address is in the whitelist
-    function checkWhitelisted(address _addr) public view returns (bool) {
-        return whitelist[_addr] > 0;
-    }
-
-    // Public function to check the address of the time lock contract for a contributor
-    function getTimelockContractAddress(address _addr) public view returns (address) {
-        return timelock[_addr];
-    }
-
-    // Add addresses to whitelist (level = presale).
-    function addToWhitelist(address[] addresses) public onlyOwner {
-        for (uint256 i = 0; i < addresses.length; i++) {
-            whitelist[addresses[i]] = 1;
-        }
-    }
-
-    // Remove addresses from the whitelist.
-    function removeFromWhitelist(address[] addresses) public onlyOwner {
-        for (uint256 i = 0; i < addresses.length; i++) {
-            whitelist[addresses[i]] = 0;
-        }
     }
 }
