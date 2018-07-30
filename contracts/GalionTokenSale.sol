@@ -45,67 +45,102 @@ contract GalionTokenSale is PhaseWhitelist {
     }
 
     // Default function called when someone is sending ETH : redirects to the ICO buy function.
-    function () public payable {
-        buyGLN();
-    }
-
-    // ICO buy function
     // The sender can only buy if :
     // - the ICO is in progress (mainsale or presale)
     // - the sender is whitelisted
-    function buyGLN() public payable whitelisted saleIsOn {
+    function () public payable whitelisted {
+        // must not be in the pause phase
+        require(phase != 1 && phase < 4);
         // require the buy price to be set
         require(baseBuyPrice > 0);
-
-        // Compute buy price (with bonus applied if presale is in progress)
-        uint256 buyPrice = baseBuyPrice;
-        // set the correct cap for the phase
-        uint256 phaseCap = weiHardCap;
-
-        // if presale, check that the contribution is at least 1 ETH and set the phaseCap to the presale Cap
+        // presale
         if (phase == 0) {
-            require(msg.value >= 10 ** 18);
-            phaseCap = weiPresaleCap;
+            buyPresale();
         }
-
-        // individual cap check if current phase is safe mainsale
-        if (phase == 2) {
-            if (block.timestamp >= safeMainsaleEnd) { // potentially switch to normal mainsale if time is elapsed
+        // safe main sale
+        else if (phase == 2) {
+            // potentially switch to normal mainsale if time is elapsed
+            if (block.timestamp >= safeMainsaleEnd) { 
                 phase = 3;
-            } else {
-                uint256 futureContributedWei = contributed[msg.sender].add(msg.value);
-                require(futureContributedWei <= individualWeiCap);
+                buyMainSale();
+            }
+            else {
+                buySafeMainSale();
             }
         }
+        // main sale
+        else if (phase == 3) {
+            buyMainSale();
+        }
+    }
 
-        uint256 futureWeiRaised = weiRaised.add(msg.value);
+    // private function, can only be called from the contrat so no need to retest the whitelisted
+    // you can only be in the buyPresale if the contributor is whitelisted and the phase is 0 and the buy price has been set
+    function buyPresale() private {
+        require(phase == 0);
+        // min contribution = 1 eth during presale
+        require(msg.value >= 10 ** 18);
 
         // Check for hardcap
-        require(futureWeiRaised <= phaseCap);
+        uint256 futureWeiRaised = weiRaised.add(msg.value);
+        require(futureWeiRaised <= weiPresaleCap);
+        
+        // here, all the tests have been made to check if the user can buy tokens
+        buyGLN();
+
+        // also give PRESALEBONUS token in a token time lock contract
+        address tokenTimeLockAddress = timelock[msg.sender];
+        // if the contributor does not have a contract yet, create it
+        if (tokenTimeLockAddress == address(0)) {
+            // create the timelock contract with a release date in 3 months
+            tokenTimeLockAddress = new TokenTimelock(token, address(msg.sender), block.timestamp + 90 days);
+            timelock[msg.sender] = tokenTimeLockAddress;
+        }
+
+        // here, the contract time lock address is set (already exists or new contract has been deployed)
+        // mint the bonus token to the contract
+        token.mint(tokenTimeLockAddress, msg.value.mul(baseBuyPrice).mul(PRESALEBONUS).div(100));
+    }
+
+    // private function, can only be called from the contrat so no need to retest the whitelisted
+    // you can only be in the buySafeMainSale if the contributor is whitelisted and the phase is 2 and the buy price has been set
+    function buySafeMainSale() private {
+        require(phase == 2 && block.timestamp <= safeMainsaleEnd);
+
+        uint256 futureContributedWei = contributed[msg.sender].add(msg.value);
+        require(futureContributedWei <= individualWeiCap);
+        
+        // Check for hardcap
+        uint256 futureWeiRaised = weiRaised.add(msg.value);
+        require(futureWeiRaised <= weiHardCap);
 
         // here, all the test have been made to check if the user can buy tokens
+        buyGLN();
+    }
+
+    // private function, can only be called from the contrat so no need to retest the whitelisted
+    // you can only be in the buyMainSale if the contributor is whitelisted and the phase is 0 and the buy price has been set
+    function buyMainSale() private {
+        require(phase == 3 && block.timestamp <= mainsaleEnd);
+        
+        // Check for hardcap
+        uint256 futureWeiRaised = weiRaised.add(msg.value);
+        require(futureWeiRaised <= weiHardCap);
+
+        // here, all the test have been made to check if the user can buy tokens
+        buyGLN();
+    }
+
+    // this function can only be called from within buyPresale, buySafeMainSale or buyMainSale function where all test 
+    // have already been made
+    function buyGLN() private {
 
         // Mint token & assign to contributor
         // Amount of tokens bought
-        uint256 buyAmount = msg.value.mul(buyPrice);
+        uint256 buyAmount = msg.value.mul(baseBuyPrice);
         contributed[msg.sender] = contributed[msg.sender].add(msg.value);
-        weiRaised = futureWeiRaised;
+        weiRaised = weiRaised.add(msg.value);
         token.mint(msg.sender, buyAmount);
-
-        // if in presale, also give PRESALEBONUS token in a token time lock contract
-        if (phase == 0) {
-            address tokenTimeLockAddress = timelock[msg.sender];
-            // if the contributor does not have a contract yet, create it
-            if (tokenTimeLockAddress == address(0)) {
-                // create the timelock contract with a release date in 3 months
-                tokenTimeLockAddress = new TokenTimelock(token, address(msg.sender), block.timestamp + 90 days);
-                timelock[msg.sender] = tokenTimeLockAddress;
-            }
-
-            // here, the contract time lock address is set (already exists or new contract has been deployed)
-            // mint the bonus token to the contract
-            token.mint(tokenTimeLockAddress, buyAmount.mul(PRESALEBONUS).div(100));
-        }
 
         // end the token generation event if the total token sold is the hard cap
         if (weiRaised == weiHardCap) {
