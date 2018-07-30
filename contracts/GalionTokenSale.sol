@@ -111,7 +111,7 @@ contract GalionTokenSale is PhasedSale, SimpleWhitelist {
     function buySafeMainSale() private {
         require(phase == 2 && block.timestamp <= safeMainsaleEnd);
 
-        // check for presale cap
+        // check for individual cap
         require(contributed[msg.sender].add(msg.value) <= individualWeiCap);
         
         // Check for hardcap
