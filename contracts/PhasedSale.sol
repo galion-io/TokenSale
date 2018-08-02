@@ -56,10 +56,6 @@ contract PhasedSale is Ownable {
         phase = nextPhase;
     }
 
-    function getCurrentPhase() public view returns(uint8) {
-        return phase;
-    }
-
     // Set the individual wei cap which is only used during the safe main sale
     function setIndividualWeiCap(uint256 newWeiCap) public onlyOwner {
         // must be during the pause phase
