@@ -48,9 +48,18 @@ contract GalionTokenSale is PhasedSale, SimpleWhitelist {
     // amount of raised money in wei
     uint256 public weiRaised = 0;
 
+    // the max date for contributing, set in the constructor to X months in the future
+    uint public tokenSaleMaxDateLimit = 0;
+
     constructor() public {
         // Token contract creation
         token = new GalionToken();
+
+        // the token sale max date limit is 6 month after deployment
+        tokenSaleMaxDateLimit = block.timestamp + 26 weeks;
+
+        // set the eth price directly for the presale
+        setEthPrice(0);
     }
 
     // Default function called when someone is sending ETH : redirects to the ICO buy function.
@@ -58,6 +67,7 @@ contract GalionTokenSale is PhasedSale, SimpleWhitelist {
     // - the ICO is in progress (mainsale or presale)
     // - the sender is whitelisted
     function () public payable whitelisted saleIsOn {
+        require(block.timestamp <= tokenSaleMaxDateLimit);
         // require the buy price to be set
         require(baseBuyPrice > 0);
         // presale
@@ -67,7 +77,7 @@ contract GalionTokenSale is PhasedSale, SimpleWhitelist {
         // safe main sale
         else if (phase == 2) {
             // potentially switch to normal mainsale if time is elapsed
-            if (block.timestamp >= safeMainsaleEnd) { 
+            if (block.timestamp > safeMainsaleEnd) { 
                 phase = 3;
                 buyMainSale();
             }
@@ -83,7 +93,6 @@ contract GalionTokenSale is PhasedSale, SimpleWhitelist {
 
     // you can only be in the buyPresale if the contributor is whitelisted and the phase is 0 and the buy price has been set
     function buyPresale() private {
-        require(phase == 0);
         // min contribution = 1 eth during presale
         require(msg.value >= 10 ** 18);
 
@@ -109,8 +118,6 @@ contract GalionTokenSale is PhasedSale, SimpleWhitelist {
 
     // you can only be in the buySafeMainSale if the contributor is whitelisted and the phase is 2 and the buy price has been set
     function buySafeMainSale() private {
-        require(phase == 2 && block.timestamp <= safeMainsaleEnd);
-
         // check for individual cap
         require(contributed[msg.sender].add(msg.value) <= individualWeiCap);
         
@@ -121,9 +128,11 @@ contract GalionTokenSale is PhasedSale, SimpleWhitelist {
         buyGLN();
     }
 
-    // you can only be in the buyMainSale if the contributor is whitelisted and the phase is 0 and the buy price has been set
+    // you can only be in the buyMainSale if the contributor is whitelisted and the phase is 3 and the buy price has been set
     function buyMainSale() private {
-        require(phase == 3 && block.timestamp <= mainsaleEnd);
+        // min contrib of 0.1 eth during mainsale
+        require(msg.value >= 10 ** 17);
+        require(block.timestamp <= mainsaleEnd);
         
         // Check for hardcap
         require(weiRaised.add(msg.value) <= weiHardCap);
@@ -154,7 +163,7 @@ contract GalionTokenSale is PhasedSale, SimpleWhitelist {
     function setEthPrice(uint256 ethPriceInDollar) public onlyOwner {
         // the base price can only be changed before the main sale
         require(phase < 2);
-        // can be set only once during presale
+        // can be set only once during presale (might already be set in the constructor)
         if (phase == 0) {
             require(baseBuyPrice == 0);
         }
@@ -179,12 +188,24 @@ contract GalionTokenSale is PhasedSale, SimpleWhitelist {
         return timelock[_addr];
     }
 
+    // This function should not be called if everything goes fine, but if the team lose the private key to the owner wallet, this function will allow anyone to end
+    // the token sale and then allow to get refund if the soft cap is not reached or to withdraw funds if the soft cap is reached
+    // it only allows it 6 months after the deployment of the contract
+    function emergencyEndTokenSale() public {
+        require(phase < 4);
+        require(block.timestamp > tokenSaleMaxDateLimit);
+        
+        phase = 4;
+    }
+
     // Withdraw all ETH stored on the contract, by sending them to the company address
     function withdraw() public {
         // cannot withdraw if the soft cap is not reached
         require(weiRaised >= weiSoftCap);
-        // cannot withdraw if the sale is not over
-        require(phase >= 4);
+        // if the soft cap is reached then the withdraw is possible if :
+        // - the phase is TGE over
+        // - the phase is the safe main sale or the main sale and the timestamp of the end of the sale is reached
+        require(phase >= 4 || ((phase == 2 || phase == 3) && block.timestamp > mainsaleEnd));
 
         COMPANY_ADDRESS.transfer(address(this).balance);
     }
@@ -193,7 +214,9 @@ contract GalionTokenSale is PhasedSale, SimpleWhitelist {
     function refund(address contributor) public {
         // cannot refund if the soft cap in wei has been reached
         require(weiRaised < weiSoftCap);
-        // allow to get a refund if the phase is TGE over or if the main sale if over (over the timestamp)
+        // can refund if :
+        // - the phase is TGE over
+        // - the phase is the safe main sale or the main sale and the timestamp of the end of the sale is reached
         require(phase >= 4 || ((phase == 2 || phase == 3) && block.timestamp > mainsaleEnd));
 
         uint256 contributedWei = contributed[contributor];
@@ -207,15 +230,16 @@ contract GalionTokenSale is PhasedSale, SimpleWhitelist {
 
     // activate token after token generation even (enable the transfer() function of ERC20)
     function activateToken() public {
-        // allow to get a refund if the phase is TGE over or if the main sale if over (over the timestamp)
+        // can only ativate token if the phase is TGE over or if the phase is safe main sale or main sale but the time is elasped
         require(phase >= 4 || ((phase == 2 || phase == 3) && block.timestamp > mainsaleEnd));
         // cannot activate the token if the soft cap is not reached
         require(weiRaised >= weiSoftCap);
 
         // the total minted during the sale must represent 60% of the supply total
         uint256 realTotalSupply = token.totalSupply().mul(100).div(60);
-        // Mint company tokens (20% of the )
+        // Mint company tokens (20% of the total)
         token.mint(COMPANY_ADDRESS, realTotalSupply.mul(20).div(100));
+        // Mint company tokens (10% of the total)
         token.mint(ADVISORY_ADDRESS, realTotalSupply.mul(10).div(100));
 
         // Mint & lock team tokens
