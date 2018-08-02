@@ -51,15 +51,40 @@ contract GalionTokenSale is PhasedSale, SimpleWhitelist {
     // the max date for contributing, set in the constructor to X months in the future
     uint public tokenSaleMaxDateLimit = 0;
 
+    
+    // check if the TGE is over
+    // the TGE is over when the phase = 4
+    // This modifier can also change the phase to 4 in 2 cases :
+    // - if the max token date limit is reached (contract deployed for more than 4 months)
+    // - if the main sale end is reached
+    modifier saleIsOver() {
+        if (phase < 4 ) {
+            bool maxTokenDateLimitReached = block.timestamp > tokenSaleMaxDateLimit;
+            bool mainSaleEndReached = (phase == 2 || phase == 3) && block.timestamp > mainsaleEnd;
+            if (maxTokenDateLimitReached || mainSaleEndReached) {
+                phase = 4;
+            }
+        }
+
+        require(phase >= 4);
+        _;
+    }
+
+    // modifier for functions that can only be called if the softcap is reached
+    modifier softCapReached() {
+        require(weiRaised >= weiSoftCap);
+        _;
+    }
+
     constructor() public {
         // Token contract creation
         token = new GalionToken();
 
-        // the token sale max date limit is 6 month after deployment
-        tokenSaleMaxDateLimit = block.timestamp + 26 weeks;
+        // the token sale max date limit is 4 month after deployment
+        tokenSaleMaxDateLimit = block.timestamp + 18 weeks;
 
         // set the eth price directly for the presale
-        setEthPrice(0);
+        //setEthPrice(0);
     }
 
     // Default function called when someone is sending ETH : redirects to the ICO buy function.
@@ -188,53 +213,27 @@ contract GalionTokenSale is PhasedSale, SimpleWhitelist {
         return timelock[_addr];
     }
 
-    // This function should not be called if everything goes fine, but if the team lose the private key to the owner wallet, this function will allow anyone to end
-    // the token sale and then allow to get refund if the soft cap is not reached or to withdraw funds if the soft cap is reached
-    // it only allows it 6 months after the deployment of the contract
-    function emergencyEndTokenSale() public {
-        require(phase < 4);
-        require(block.timestamp > tokenSaleMaxDateLimit);
-        
-        phase = 4;
-    }
-
     // Withdraw all ETH stored on the contract, by sending them to the company address
-    function withdraw() public {
-        // cannot withdraw if the soft cap is not reached
-        require(weiRaised >= weiSoftCap);
-        // if the soft cap is reached then the withdraw is possible if :
-        // - the phase is TGE over
-        // - the phase is the safe main sale or the main sale and the timestamp of the end of the sale is reached
-        require(phase >= 4 || ((phase == 2 || phase == 3) && block.timestamp > mainsaleEnd));
-
+    function withdraw() public saleIsOver softCapReached {
         COMPANY_ADDRESS.transfer(address(this).balance);
     }
 
-    // allow a user to get refund before softcap is reached
-    function refund(address contributor) public {
+    // allow a user to get refund if the soft cap has not been reached
+    function refund(address contributor) public saleIsOver {
         // cannot refund if the soft cap in wei has been reached
         require(weiRaised < weiSoftCap);
-        // can refund if :
-        // - the phase is TGE over
-        // - the phase is the safe main sale or the main sale and the timestamp of the end of the sale is reached
-        require(phase >= 4 || ((phase == 2 || phase == 3) && block.timestamp > mainsaleEnd));
 
         uint256 contributedWei = contributed[contributor];
         require(contributedWei > 0);
 
         contributed[contributor] = 0;
-        if (contributedWei > 0 && address(this).balance >= contributedWei) {
+        if (address(this).balance >= contributedWei) {
             contributor.transfer(contributedWei);
         }
     }
 
     // activate token after token generation even (enable the transfer() function of ERC20)
-    function activateToken() public {
-        // can only ativate token if the phase is TGE over or if the phase is safe main sale or main sale but the time is elasped
-        require(phase >= 4 || ((phase == 2 || phase == 3) && block.timestamp > mainsaleEnd));
-        // cannot activate the token if the soft cap is not reached
-        require(weiRaised >= weiSoftCap);
-
+    function activateToken() public saleIsOver softCapReached {
         // the total minted during the sale must represent 60% of the supply total
         uint256 realTotalSupply = token.totalSupply().mul(100).div(60);
         // Mint company tokens (20% of the total)
