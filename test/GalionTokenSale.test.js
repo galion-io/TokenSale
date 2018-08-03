@@ -73,8 +73,10 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
     }
 
     beforeEach('setup tokenSaleContract for each test', async function () {
-        tokenSaleContract = await GalionTokenSaleContract.new();
-        token = await GalionTokenContract.at(await tokenSaleContract.token());
+        token = await GalionTokenContract.new();
+        tokenSaleContract = await GalionTokenSaleContract.new(await token.address);
+        await token.transferOwnership(await tokenSaleContract.address);
+
         // contributor "whitelistedInPresale" is whitelisted for each tests
         await tokenSaleContract.addToWhitelist([whitelistedInPresale]);
     });
@@ -84,7 +86,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             assert.equal(await tokenSaleContract.owner(), owner);
         });
 
-        it('should deploy token tokenSaleContract properly', async function () {
+        it('Ownership of the token contract should be the tokensale contract', async function () {
             assert.equal(await token.owner(), await tokenSaleContract.address);
         });
 
@@ -114,7 +116,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
     });
 
     contract('Owner only functions', async function () {
-        it('should not be able to set the buy price if not the owner', async function () {
+        it('should not be able to set the eth price if not the owner', async function () {
             try {
                 await tokenSaleContract.setEthPrice(5000, {
                     from: contributor
