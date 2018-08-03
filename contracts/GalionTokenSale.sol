@@ -81,8 +81,14 @@ contract GalionTokenSale is PhasedSale, SimpleWhitelist {
         // Token contract link
         token = GalionToken(_tokenAddr);
 
-        // the token sale max date limit is () month after deployment
+        // check if 0 token have already been minted !!
+        require(token.totalSupply() == 0);
+
+        // the token sale max date limit is 5 month after deployment
         tokenSaleMaxDateLimit = block.timestamp + 22 weeks;
+
+        // set the eth price for the presale, 95 000 is for testing purpose
+        setEthPrice(95000);
     }
 
     // Default function called when someone is sending ETH : redirects to the ICO buy function.
