@@ -184,8 +184,8 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             var weiHardCap = await tokenSaleContract.weiHardCap();
             // the hardcap is the amount of wei needed to raise 9 500 000 $
             assert.equal(weiHardCap, (9500000 / ETH_PRICE) * ETH);
-            // the soft cap is 26% of the hardcap
-            assert.equal(await tokenSaleContract.weiSoftCap(), weiHardCap * 0.26);
+            // the soft cap is the amount of wei to raise 2 500 000 $
+            assert.equal(await tokenSaleContract.weiSoftCap(), (2500000 / ETH_PRICE) * ETH);
             // the presale cap is 80% of the hardcap
             assert.equal(await tokenSaleContract.weiPresaleCap(), weiHardCap * 0.8);
             // the tokenBuyPrice is set using the value 0.05$ / token
@@ -420,18 +420,44 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
 
         it('Should be able to set the eth price multiple times', async function () {
             await setContractToPausePhase();
+
             await tokenSaleContract.setEthPrice(10);
+            // the hardcap is the amount of wei needed to raise 9 500 000 $
+            assert.equal(await tokenSaleContract.weiHardCap(), (9500000 / 10) * ETH);
+            // the soft cap is 26% of the hardcap
+            assert.equal(await tokenSaleContract.weiSoftCap(), (2500000 / 10) * ETH);
+            // the presale cap is 80% of the hardcap
+            assert.equal((await tokenSaleContract.weiPresaleCap()).comparedTo((await tokenSaleContract.weiHardCap()).mul(0.8)), 0);
+            // the tokenBuyPrice is set using the value 0.05$ / token
+            assert.equal(await tokenSaleContract.baseBuyPrice(), 10 / 0.05);
+
             await tokenSaleContract.setEthPrice(50);
+            // the hardcap is the amount of wei needed to raise 9 500 000 $
+            assert.equal(await tokenSaleContract.weiHardCap(), (9500000 / 50) * ETH);
+            // the soft cap is 26% of the hardcap
+            assert.equal(await tokenSaleContract.weiSoftCap(), (2500000 / 50) * ETH);
+            // the presale cap is 80% of the hardcap
+            assert.equal((await tokenSaleContract.weiPresaleCap()).comparedTo((await tokenSaleContract.weiHardCap()).mul(0.8)), 0);
+            // the tokenBuyPrice is set using the value 0.05$ / token
+            assert.equal(await tokenSaleContract.baseBuyPrice(), 50 / 0.05);
+
             await tokenSaleContract.setEthPrice(100);
+            // the hardcap is the amount of wei needed to raise 9 500 000 $
+            assert.equal(await tokenSaleContract.weiHardCap(), (9500000 / 100) * ETH);
+            // the soft cap is 26% of the hardcap
+            assert.equal(await tokenSaleContract.weiSoftCap(), (2500000 / 100) * ETH);
+            // the presale cap is 80% of the hardcap
+            assert.equal((await tokenSaleContract.weiPresaleCap()).comparedTo((await tokenSaleContract.weiHardCap()).mul(0.8)), 0);
+            // the tokenBuyPrice is set using the value 0.05$ / token
+            assert.equal(await tokenSaleContract.baseBuyPrice(), 100 / 0.05);
 
             await tokenSaleContract.setEthPrice(ETH_PRICE);
-            var weiHardCap = await tokenSaleContract.weiHardCap();
             // the hardcap is the amount of wei needed to raise 9 500 000 $
-            assert.equal(weiHardCap, (9500000 / ETH_PRICE) * ETH);
+            assert.equal(await tokenSaleContract.weiHardCap(), (9500000 / ETH_PRICE) * ETH);
             // the soft cap is 26% of the hardcap
-            assert.equal(await tokenSaleContract.weiSoftCap(), weiHardCap * 0.26);
+            assert.equal(await tokenSaleContract.weiSoftCap(), (2500000 / ETH_PRICE) * ETH);
             // the presale cap is 80% of the hardcap
-            assert.equal(await tokenSaleContract.weiPresaleCap(), weiHardCap * 0.8);
+            assert.equal((await tokenSaleContract.weiPresaleCap()).comparedTo((await tokenSaleContract.weiHardCap()).mul(0.8)), 0);
             // the tokenBuyPrice is set using the value 0.05$ / token
             assert.equal(await tokenSaleContract.baseBuyPrice(), ETH_PRICE / 0.05);
         });
@@ -1133,7 +1159,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
 
     contract('Worst case scenario : owner\'s  private key lost', async function () {
         // lost private key just after the deployment...
-        it('Should allow refund if soft cap NOT reached and phase is still presale after 4 months', async function () {
+        it('Should allow refund if soft cap NOT reached and phase is still presale after 5 months', async function () {
             contributingEth = 10;
             await tokenSaleContract.setEthPrice(ETH_PRICE);
 
@@ -1147,11 +1173,11 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
 
             const contributorBalanceAfterContributing = web3.eth.getBalance(whitelistedInPresale).toNumber();
 
-            // set the time in 4 months = 18 weeks
+            // set the time in 5 months = 22 weeks
             web3.currentProvider.sendAsync({
                 jsonrpc: "2.0",
                 method: "evm_increaseTime",
-                params: [(3600 * 24 * 7 * 18) + 1],
+                params: [(3600 * 24 * 7 * 22) + 1],
                 id: 12345
             }, function (err, result) {});
 
@@ -1166,7 +1192,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             assert.equal(web3.eth.getBalance(await tokenSaleContract.address).toNumber(), tokenSaleContractBalanceAfterContributing - contributingEth * ETH);
         });
 
-        it('Should allow refund if soft cap NOT reached and phase is still pause after 4 months', async function () {
+        it('Should allow refund if soft cap NOT reached and phase is still pause after 5 months', async function () {
             contributingEth = 10;
             await tokenSaleContract.setEthPrice(ETH_PRICE);
 
@@ -1182,11 +1208,11 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
 
             await setContractToPausePhase();
 
-            // set the time in 4 months = 18 weeks
+            // set the time in 5 months = 22 weeks
             web3.currentProvider.sendAsync({
                 jsonrpc: "2.0",
                 method: "evm_increaseTime",
-                params: [(3600 * 24 * 7 * 18) + 1],
+                params: [(3600 * 24 * 7 * 22) + 1],
                 id: 12345
             }, function (err, result) {});
 
@@ -1202,7 +1228,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             assert.equal(web3.eth.getBalance(await tokenSaleContract.address).toNumber(), tokenSaleContractBalanceAfterContributing - contributingEth * ETH);
         });
 
-        it('Should allow refund if soft cap NOT reached and phase is still safe main sale after 4 months', async function () {
+        it('Should allow refund if soft cap NOT reached and phase is still safe main sale after 5 months', async function () {
             contributingEth = 10;
             await tokenSaleContract.setEthPrice(ETH_PRICE);
 
@@ -1218,11 +1244,11 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
 
             await setContractToSafeMainSale();
 
-            // set the time in 4 months = 18 weeks
+            // set the time in 5 months = 22 weeks
             web3.currentProvider.sendAsync({
                 jsonrpc: "2.0",
                 method: "evm_increaseTime",
-                params: [(3600 * 24 * 7 * 18) + 1],
+                params: [(3600 * 24 * 7 * 22) + 1],
                 id: 12345
             }, function (err, result) {});
 
@@ -1238,7 +1264,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             assert.equal(web3.eth.getBalance(await tokenSaleContract.address).toNumber(), tokenSaleContractBalanceAfterContributing - contributingEth * ETH);
         });
 
-        it('Should allow refund if soft cap NOT reached and phase is still main sale after 4 months', async function () {
+        it('Should allow refund if soft cap NOT reached and phase is still main sale after 5 months', async function () {
 
             contributingEth = 10;
             await tokenSaleContract.setEthPrice(ETH_PRICE);
@@ -1255,11 +1281,11 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
 
             await setContractToMainSale();
 
-            // set the time in 4 months = 18 weeks
+            // set the time in 5 months = 22 weeks
             web3.currentProvider.sendAsync({
                 jsonrpc: "2.0",
                 method: "evm_increaseTime",
-                params: [(3600 * 24 * 7 * 18) + 1],
+                params: [(3600 * 24 * 7 * 22) + 1],
                 id: 12345
             }, function (err, result) {});
 
@@ -1275,7 +1301,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             assert.equal(web3.eth.getBalance(await tokenSaleContract.address).toNumber(), tokenSaleContractBalanceAfterContributing - contributingEth * ETH);
         });
 
-        it('Should not allow refund if soft cap reached and phase is still presale after 4 months', async function () {
+        it('Should not allow refund if soft cap reached and phase is still presale after 5 months', async function () {
             contributingEth = 50;
             await tokenSaleContract.setEthPrice(ETH_PRICE);
 
@@ -1284,11 +1310,11 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
                 from: whitelistedInPresale
             });
 
-            // set the time in 4 months = 18 weeks
+            // set the time in 5 months = 22 weeks
             web3.currentProvider.sendAsync({
                 jsonrpc: "2.0",
                 method: "evm_increaseTime",
-                params: [(3600 * 24 * 7 * 18) + 1],
+                params: [(3600 * 24 * 7 * 22) + 1],
                 id: 12345
             }, function (err, result) {});
 
@@ -1301,7 +1327,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             }
         });
 
-        it('Should not allow refund if soft cap reached and phase is still pause after 4 months', async function () {
+        it('Should not allow refund if soft cap reached and phase is still pause after 5 months', async function () {
             contributingEth = 50;
             await tokenSaleContract.setEthPrice(ETH_PRICE);
 
@@ -1311,11 +1337,11 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             });
 
             await setContractToPausePhase();
-            // set the time in 4 months = 18 weeks
+            // set the time in 5 months = 22 weeks
             web3.currentProvider.sendAsync({
                 jsonrpc: "2.0",
                 method: "evm_increaseTime",
-                params: [(3600 * 24 * 7 * 18) + 1],
+                params: [(3600 * 24 * 7 * 22) + 1],
                 id: 12345
             }, function (err, result) {});
 
@@ -1327,7 +1353,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
                 assert(error.toString().includes('revert'), error.toString());
             }
         });
-        it('Should not allow refund if soft cap reached and phase is still safe main sale after 4 months', async function () {
+        it('Should not allow refund if soft cap reached and phase is still safe main sale after 5 months', async function () {
             contributingEth = 50;
             await tokenSaleContract.setEthPrice(ETH_PRICE);
 
@@ -1337,11 +1363,11 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             });
 
             await setContractToSafeMainSale();
-            // set the time in 4 months = 18 weeks
+            // set the time in 5 months = 22 weeks
             web3.currentProvider.sendAsync({
                 jsonrpc: "2.0",
                 method: "evm_increaseTime",
-                params: [(3600 * 24 * 7 * 18) + 1],
+                params: [(3600 * 24 * 7 * 22) + 1],
                 id: 12345
             }, function (err, result) {});
 
@@ -1354,7 +1380,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             }
         });
 
-        it('Should not allow refund if soft cap reached and phase is still main sale after 4 months', async function () {
+        it('Should not allow refund if soft cap reached and phase is still main sale after 5 months', async function () {
             contributingEth = 50;
             await tokenSaleContract.setEthPrice(ETH_PRICE);
 
@@ -1365,11 +1391,11 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
 
             await setContractToMainSale();
 
-            // set the time in 4 months = 18 weeks
+            // set the time in 5 months = 22 weeks
             web3.currentProvider.sendAsync({
                 jsonrpc: "2.0",
                 method: "evm_increaseTime",
-                params: [(3600 * 24 * 7 * 18) + 1],
+                params: [(3600 * 24 * 7 * 22) + 1],
                 id: 12345
             }, function (err, result) {});
 
@@ -1384,7 +1410,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
 
 
 
-        it('Should allow withdraw and activate if soft cap reached and phase is still presale after 4 months', async function () {
+        it('Should allow withdraw and activate if soft cap reached and phase is still presale after 5 months', async function () {
 
             contributingEth = 50;
             await tokenSaleContract.setEthPrice(ETH_PRICE);
@@ -1394,11 +1420,11 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
                 from: whitelistedInPresale
             });
 
-            // set the time in 4 months = 18 weeks
+            // set the time in 5 months = 22 weeks
             web3.currentProvider.sendAsync({
                 jsonrpc: "2.0",
                 method: "evm_increaseTime",
-                params: [(3600 * 24 * 7 * 18) + 1],
+                params: [(3600 * 24 * 7 * 22) + 1],
                 id: 12345
             }, function (err, result) {});
 
@@ -1418,7 +1444,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             assert.equal(await token.activated(), true);
         });
 
-        it('Should allow withdraw and activate if soft cap reached and phase is still pause sale after 4 months', async function () {
+        it('Should allow withdraw and activate if soft cap reached and phase is still pause sale after 5 months', async function () {
 
             contributingEth = 50;
             await tokenSaleContract.setEthPrice(ETH_PRICE);
@@ -1430,11 +1456,11 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
 
             await setContractToPausePhase();
 
-            // set the time in 4 months = 18 weeks
+            // set the time in 5 months = 22 weeks
             web3.currentProvider.sendAsync({
                 jsonrpc: "2.0",
                 method: "evm_increaseTime",
-                params: [(3600 * 24 * 7 * 18) + 1],
+                params: [(3600 * 24 * 7 * 22) + 1],
                 id: 12345
             }, function (err, result) {});
 
@@ -1454,7 +1480,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             assert.equal(await token.activated(), true);
         });
 
-        it('Should allow withdraw and activate if soft cap reached and phase is still safe main sale after 4 months', async function () {
+        it('Should allow withdraw and activate if soft cap reached and phase is still safe main sale after 5 months', async function () {
 
             contributingEth = 50;
             await tokenSaleContract.setEthPrice(ETH_PRICE);
@@ -1466,11 +1492,11 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
 
             await setContractToSafeMainSale();
 
-            // set the time in 4 months = 18 weeks
+            // set the time in 5 months = 22 weeks
             web3.currentProvider.sendAsync({
                 jsonrpc: "2.0",
                 method: "evm_increaseTime",
-                params: [(3600 * 24 * 7 * 18) + 1],
+                params: [(3600 * 24 * 7 * 22) + 1],
                 id: 12345
             }, function (err, result) {});
 
@@ -1490,7 +1516,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             assert.equal(await token.activated(), true);
         });
 
-        it('Should allow withdraw and activate if soft cap reached and phase is still main sale after 4 months', async function () {
+        it('Should allow withdraw and activate if soft cap reached and phase is still main sale after 5 months', async function () {
 
             contributingEth = 50;
             await tokenSaleContract.setEthPrice(ETH_PRICE);
@@ -1502,11 +1528,11 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
 
             await setContractToMainSale();
 
-            // set the time in 4 months = 18 weeks
+            // set the time in 5 months = 22 weeks
             web3.currentProvider.sendAsync({
                 jsonrpc: "2.0",
                 method: "evm_increaseTime",
-                params: [(3600 * 24 * 7 * 18) + 1],
+                params: [(3600 * 24 * 7 * 22) + 1],
                 id: 12345
             }, function (err, result) {});
 
@@ -1526,7 +1552,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             assert.equal(await token.activated(), true);
         });
 
-        it('Should not allow withdraw if soft cap NOT reached and phase is still presale after 4 months', async function () {
+        it('Should not allow withdraw if soft cap NOT reached and phase is still presale after 5 months', async function () {
 
             contributingEth = 10;
             await tokenSaleContract.setEthPrice(ETH_PRICE);
@@ -1536,11 +1562,11 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
                 from: whitelistedInPresale
             });
 
-            // set the time in 4 months = 18 weeks
+            // set the time in 5 months = 22 weeks
             web3.currentProvider.sendAsync({
                 jsonrpc: "2.0",
                 method: "evm_increaseTime",
-                params: [(3600 * 24 * 7 * 18) + 1],
+                params: [(3600 * 24 * 7 * 22) + 1],
                 id: 12345
             }, function (err, result) {});
 
@@ -1555,7 +1581,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             }
         });
 
-        it('Should not allow withdraw if soft cap NOT reached and phase is still pause after 4 months', async function () {
+        it('Should not allow withdraw if soft cap NOT reached and phase is still pause after 5 months', async function () {
 
             contributingEth = 10;
             await tokenSaleContract.setEthPrice(ETH_PRICE);
@@ -1567,11 +1593,11 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
 
             await setContractToPausePhase();
 
-            // set the time in 4 months = 18 weeks
+            // set the time in 5 months = 22 weeks
             web3.currentProvider.sendAsync({
                 jsonrpc: "2.0",
                 method: "evm_increaseTime",
-                params: [(3600 * 24 * 7 * 18) + 1],
+                params: [(3600 * 24 * 7 * 22) + 1],
                 id: 12345
             }, function (err, result) {});
 
@@ -1586,7 +1612,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             }
         });
 
-        it('Should not allow withdraw if soft cap NOT reached and phase is still safe main sale after 4 months', async function () {
+        it('Should not allow withdraw if soft cap NOT reached and phase is still safe main sale after 5 months', async function () {
 
             contributingEth = 10;
             await tokenSaleContract.setEthPrice(ETH_PRICE);
@@ -1597,11 +1623,11 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             });
 
             await setContractToSafeMainSale();
-            // set the time in 4 months = 18 weeks
+            // set the time in 5 months = 22 weeks
             web3.currentProvider.sendAsync({
                 jsonrpc: "2.0",
                 method: "evm_increaseTime",
-                params: [(3600 * 24 * 7 * 18) + 1],
+                params: [(3600 * 24 * 7 * 22) + 1],
                 id: 12345
             }, function (err, result) {});
 
@@ -1616,7 +1642,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             }
         });
 
-        it('Should not allow withdraw if soft cap NOT reached and phase is still main sale after 4 months', async function () {
+        it('Should not allow withdraw if soft cap NOT reached and phase is still main sale after 5 months', async function () {
 
             contributingEth = 10;
             await tokenSaleContract.setEthPrice(ETH_PRICE);
@@ -1628,11 +1654,11 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
 
             await setContractToMainSale();
 
-            // set the time in 4 months = 18 weeks
+            // set the time in 5 months = 22 weeks
             web3.currentProvider.sendAsync({
                 jsonrpc: "2.0",
                 method: "evm_increaseTime",
-                params: [(3600 * 24 * 7 * 18) + 1],
+                params: [(3600 * 24 * 7 * 22) + 1],
                 id: 12345
             }, function (err, result) {});
 

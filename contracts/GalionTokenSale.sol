@@ -32,6 +32,7 @@ contract GalionTokenSale is PhasedSale, SimpleWhitelist {
 
     // amount of dollar raised, costant, used to define softcap, presalecap and hardcap
     uint256 public constant DOLLARTARGET = 9500000;
+    uint256 public constant DOLLARSOFTTARGET = 2500000;
 
     // the following variables are used to define the different caps of the sale
     // they are set in the "setEthPrice" function
@@ -81,7 +82,7 @@ contract GalionTokenSale is PhasedSale, SimpleWhitelist {
         token = new GalionToken();
 
         // the token sale max date limit is 4 month after deployment
-        tokenSaleMaxDateLimit = block.timestamp + 18 weeks;
+        tokenSaleMaxDateLimit = block.timestamp + 22 weeks;
 
         // set the eth price directly for the presale
         //setEthPrice(0);
@@ -199,10 +200,10 @@ contract GalionTokenSale is PhasedSale, SimpleWhitelist {
         baseBuyPrice = ethPriceInDollar.mul(20);
 
         // the sale hardcap in wei is how much wei is needed to reach 9.5M$
-        weiHardCap = DOLLARTARGET.div(ethPriceInDollar).mul(10 ** 18);
+        weiHardCap = DOLLARTARGET.mul(10 ** 18).div(ethPriceInDollar);
 
-        // the soft cap is 26% of the hardcap
-        weiSoftCap = weiHardCap.mul(26).div(100);
+        // the soft cap in wei is how much wei is needed to reach 2.5M$
+        weiSoftCap = DOLLARSOFTTARGET.mul(10 ** 18).div(ethPriceInDollar);
 
         // the presale cap is 80% of the sale hardcap
         weiPresaleCap = weiHardCap.mul(80).div(100);
