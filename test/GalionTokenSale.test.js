@@ -116,18 +116,6 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
     });
 
     contract('Owner only functions', async function () {
-        it('should not be able to set the eth price if not the owner', async function () {
-            await setContractToPausePhase();
-
-            try {
-                await tokenSaleContract.setEthPrice(5000, {
-                    from: contributor
-                });
-                assert.fail();
-            } catch (error) {
-                assert(error.toString().includes('revert'), error.toString());
-            }
-        });
 
         it('should not be able to set the individual wei cap if not the owner', async function () {
             await tokenSaleContract.setPhase(1);
@@ -181,15 +169,6 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
         it('Timelock address for a contributor must be address(0) until he contributes', async function () {
             var addr = await tokenSaleContract.getTimelockContractAddress([contributor]);
             assert.equal(addr, '0x0000000000000000000000000000000000000000');
-        });
-
-        it('Should not be able to set the eth price during the presale', async function () {
-            try {
-                await tokenSaleContract.setEthPrice(10);
-                assert.fail();
-            } catch (error) {
-                assert(error.toString().includes('revert'), error.toString());
-            }
         });
 
         it('should allow to add people to the whitelist', async function () {
@@ -373,61 +352,6 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             await setContractToPausePhase();
             await tokenSaleContract.setIndividualWeiCap(1 * ETH);
             assert.equal(await tokenSaleContract.getIndividualWeiCap(), 1 * ETH);
-        });
-
-        it('Should be able to set the eth price multiple times', async function () {
-            await setContractToPausePhase();
-
-            await tokenSaleContract.setEthPrice(10);
-            // the hardcap is the amount of wei needed to raise 9 500 000 $
-            assert.equal(await tokenSaleContract.weiHardCap(), (9500000 / 10) * ETH);
-            // the soft cap is 26% of the hardcap
-            assert.equal(await tokenSaleContract.weiSoftCap(), (2500000 / 10) * ETH);
-            // the presale cap is 80% of the hardcap
-            assert.equal((await tokenSaleContract.weiPresaleCap()).comparedTo((await tokenSaleContract.weiHardCap()).mul(0.8)), 0);
-            // the tokenBuyPrice is set using the value 0.05$ / token
-            assert.equal(await tokenSaleContract.baseBuyPrice(), 10 / 0.05);
-
-            await tokenSaleContract.setEthPrice(50);
-            // the hardcap is the amount of wei needed to raise 9 500 000 $
-            assert.equal(await tokenSaleContract.weiHardCap(), (9500000 / 50) * ETH);
-            // the soft cap is 26% of the hardcap
-            assert.equal(await tokenSaleContract.weiSoftCap(), (2500000 / 50) * ETH);
-            // the presale cap is 80% of the hardcap
-            assert.equal((await tokenSaleContract.weiPresaleCap()).comparedTo((await tokenSaleContract.weiHardCap()).mul(0.8)), 0);
-            // the tokenBuyPrice is set using the value 0.05$ / token
-            assert.equal(await tokenSaleContract.baseBuyPrice(), 50 / 0.05);
-
-            await tokenSaleContract.setEthPrice(100);
-            // the hardcap is the amount of wei needed to raise 9 500 000 $
-            assert.equal(await tokenSaleContract.weiHardCap(), (9500000 / 100) * ETH);
-            // the soft cap is 26% of the hardcap
-            assert.equal(await tokenSaleContract.weiSoftCap(), (2500000 / 100) * ETH);
-            // the presale cap is 80% of the hardcap
-            assert.equal((await tokenSaleContract.weiPresaleCap()).comparedTo((await tokenSaleContract.weiHardCap()).mul(0.8)), 0);
-            // the tokenBuyPrice is set using the value 0.05$ / token
-            assert.equal(await tokenSaleContract.baseBuyPrice(), 100 / 0.05);
-
-            await tokenSaleContract.setEthPrice(ETH_PRICE);
-            // the hardcap is the amount of wei needed to raise 9 500 000 $
-            assert.equal(await tokenSaleContract.weiHardCap(), (9500000 / ETH_PRICE) * ETH);
-            // the soft cap is 26% of the hardcap
-            assert.equal(await tokenSaleContract.weiSoftCap(), (2500000 / ETH_PRICE) * ETH);
-            // the presale cap is 80% of the hardcap
-            assert.equal((await tokenSaleContract.weiPresaleCap()).comparedTo((await tokenSaleContract.weiHardCap()).mul(0.8)), 0);
-            // the tokenBuyPrice is set using the value 0.05$ / token
-            assert.equal(await tokenSaleContract.baseBuyPrice(), ETH_PRICE / 0.05);
-        });
-
-        it('Should not be able to set the eth price to 0', async function () {
-            await setContractToPausePhase();
-            try {
-
-                await tokenSaleContract.setEthPrice(0);
-                assert.fail();
-            } catch (error) {
-                assert(error.toString().includes('revert'), error.toString());
-            }
         });
     });
 

@@ -88,7 +88,20 @@ contract GalionTokenSale is PhasedSale, SimpleWhitelist {
         tokenSaleMaxDateLimit = block.timestamp + 22 weeks;
 
         // set the eth price for the presale, 95 000 is for testing purpose
-        setEthPrice(95000);
+        uint256 ethPriceInDollar = 95000;
+        require(ethPriceInDollar > 0);
+
+        // the tokenBuyPrice is set using the value 0.05$ / token
+        baseBuyPrice = ethPriceInDollar.mul(20);
+
+        // the sale hardcap in wei is how much wei is needed to reach 9.5M$
+        weiHardCap = DOLLARTARGET.mul(10 ** 18).div(ethPriceInDollar);
+
+        // the soft cap in wei is how much wei is needed to reach 2.5M$
+        weiSoftCap = DOLLARSOFTTARGET.mul(10 ** 18).div(ethPriceInDollar);
+
+        // the presale cap is 80% of the sale hardcap
+        weiPresaleCap = weiHardCap.mul(80).div(100);
     }
 
     // Default function called when someone is sending ETH : redirects to the ICO buy function.
@@ -183,33 +196,6 @@ contract GalionTokenSale is PhasedSale, SimpleWhitelist {
         if (weiRaised == weiHardCap) {
             phase = 4;
         }
-    }
-
-    // set the price of 1 ETH in $, exemple 1 ETH = $ 515
-    // can (and must) be set once during the presale or nobody can contribute
-    // can be reset during the pause phase (to adjust the price if the price has dropped or mooned)
-    // using the constant "DOLLARTARGET", the calculation of the weiSoftCap, weiPresaleCap and weiHardcap and the buyPrice is done here
-    function setEthPrice(uint256 ethPriceInDollar) public onlyOwner {
-        // the base price can only be changed before the main sale
-        require(phase < 2);
-        // can be set only once during presale (might already be set in the constructor)
-        if (phase == 0) {
-            require(baseBuyPrice == 0);
-        }
-
-        require(ethPriceInDollar > 0);
-
-        // the tokenBuyPrice is set using the value 0.05$ / token
-        baseBuyPrice = ethPriceInDollar.mul(20);
-
-        // the sale hardcap in wei is how much wei is needed to reach 9.5M$
-        weiHardCap = DOLLARTARGET.mul(10 ** 18).div(ethPriceInDollar);
-
-        // the soft cap in wei is how much wei is needed to reach 2.5M$
-        weiSoftCap = DOLLARSOFTTARGET.mul(10 ** 18).div(ethPriceInDollar);
-
-        // the presale cap is 80% of the sale hardcap
-        weiPresaleCap = weiHardCap.mul(80).div(100);
     }
 
     // Public function to check the address of the time lock contract for a contributor
