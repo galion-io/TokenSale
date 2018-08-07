@@ -203,6 +203,23 @@ contract GalionTokenSale is PhasedSale, SimpleWhitelist {
         return timelock[_addr];
     }
 
+    // Public function to check the release timestamp of a presale contributor
+    function getTimelockReleaseTimestamp(address _addr) public view returns (uint256) {
+        address tlckAddr = timelock[_addr];
+        if (tlckAddr == address(0)) {
+            return 0;
+        }
+        else {        
+            TokenTimelock tlck = TokenTimelock(tlckAddr);
+            return tlck.releaseTime();
+        }
+    }
+
+    // Public function to try to release the timelocked tokens for a presale contributor
+    function releaseLockedTokens(address _addr) public {
+        TokenTimelock(timelock[_addr]).release();
+    }
+
     // Withdraw all ETH stored on the contract, by sending them to the company address
     function withdraw() public saleIsOver softCapReached {
         COMPANY_ADDRESS.transfer(address(this).balance);

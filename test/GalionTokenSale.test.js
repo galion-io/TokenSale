@@ -967,7 +967,6 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
                 from: whitelistedInPresale
             });
 
-            var tokenAddr = await tokenSaleContract.getTimelockContractAddress(whitelistedInPresale);
             // end the sale and activate the token but does not set the time after the 2019/01/01
             await setContractToMainSale();
 
@@ -981,10 +980,9 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
 
             await tokenSaleContract.setPhase(4);
             await tokenSaleContract.activateToken();
-            var timelock = TokenTimelockContract.at(tokenAddr);
 
             try {
-                await timelock.release();
+                await tokenSaleContract.releaseLockedTokens(whitelistedInPresale);
                 assert.fail();
             } catch (error) {
                 assert(error.toString().includes('revert'), error.toString());
@@ -999,7 +997,6 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             });
 
             var tokenAmountBeforeReleasingTokens = (await token.balanceOf(whitelistedInPresale)).toNumber();
-            var tokenAddr = await tokenSaleContract.getTimelockContractAddress(whitelistedInPresale);
 
             // end the sale and activate the token but does not set the time after the 2019/01/01
             await setContractToMainSale();
@@ -1014,7 +1011,6 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
 
             await tokenSaleContract.setPhase(4);
             await tokenSaleContract.activateToken();
-            var timelock = TokenTimelockContract.at(tokenAddr);
 
             // wait for 69 days because we already waited 21 weeks for the mainsale to finish
             // and the presale vesting is 90 days
@@ -1025,7 +1021,8 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
                 id: 12345
             }, function (err, result) {});
 
-            await timelock.release();
+            
+            await tokenSaleContract.releaseLockedTokens(whitelistedInPresale);
 
             assert.equal((await token.balanceOf(whitelistedInPresale)).toNumber(), tokenAmountBeforeReleasingTokens * (1 + BONUS));
         });
