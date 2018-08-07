@@ -17,10 +17,6 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
     let token;
 
     var setContractToPausePhase = async function () {
-        // during the presale, can only set the ether price once, does not set is if buy price already set
-        if (await tokenSaleContract.baseBuyPrice() == 0) {
-            await tokenSaleContract.setEthPrice(ETH_PRICE);
-        }
         await tokenSaleContract.setPhase(1);
         await tokenSaleContract.addToWhitelist([whitelistedInPause]);
     }
@@ -73,8 +69,10 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
     }
 
     beforeEach('setup tokenSaleContract for each test', async function () {
-        tokenSaleContract = await GalionTokenSaleContract.new();
-        token = await GalionTokenContract.at(await tokenSaleContract.token());
+        token = await GalionTokenContract.new();
+        tokenSaleContract = await GalionTokenSaleContract.new(await token.address);
+        await token.transferOwnership(await tokenSaleContract.address);
+
         // contributor "whitelistedInPresale" is whitelisted for each tests
         await tokenSaleContract.addToWhitelist([whitelistedInPresale]);
     });
@@ -84,7 +82,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             assert.equal(await tokenSaleContract.owner(), owner);
         });
 
-        it('should deploy token tokenSaleContract properly', async function () {
+        it('Ownership of the token contract should be the tokensale contract', async function () {
             assert.equal(await token.owner(), await tokenSaleContract.address);
         });
 
@@ -109,21 +107,15 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
         });
 
         it('should deploy with the phase equals to 0', async function () {
-            assert.equal(await tokenSaleContract.getCurrentPhase(), 0);
+            assert.equal(await tokenSaleContract.phase(), 0);
+        });
+
+        it('should deploy with a buy price > 0', async function () {
+            assert(await tokenSaleContract.baseBuyPrice() > 0);
         });
     });
 
     contract('Owner only functions', async function () {
-        it('should not be able to set the buy price if not the owner', async function () {
-            try {
-                await tokenSaleContract.setEthPrice(5000, {
-                    from: contributor
-                });
-                assert.fail();
-            } catch (error) {
-                assert(error.toString().includes('revert'), error.toString());
-            }
-        });
 
         it('should not be able to set the individual wei cap if not the owner', async function () {
             await tokenSaleContract.setPhase(1);
@@ -179,39 +171,6 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             assert.equal(addr, '0x0000000000000000000000000000000000000000');
         });
 
-        it('Should be able to set the eth price in dollar', async function () {
-            await tokenSaleContract.setEthPrice(ETH_PRICE);
-            var weiHardCap = await tokenSaleContract.weiHardCap();
-            // the hardcap is the amount of wei needed to raise 9 500 000 $
-            assert.equal(weiHardCap, (9500000 / ETH_PRICE) * ETH);
-            // the soft cap is 26% of the hardcap
-            assert.equal(await tokenSaleContract.weiSoftCap(), weiHardCap * 0.26);
-            // the presale cap is 80% of the hardcap
-            assert.equal(await tokenSaleContract.weiPresaleCap(), weiHardCap * 0.8);
-            // the tokenBuyPrice is set using the value 0.05$ / token
-            assert.equal(await tokenSaleContract.baseBuyPrice(), ETH_PRICE / 0.05);
-        });
-
-        it('Should not be able to set the eth price two times', async function () {
-            await tokenSaleContract.setEthPrice(ETH_PRICE);
-            try {
-                await tokenSaleContract.setEthPrice(10);
-                assert.fail();
-            } catch (error) {
-                assert(error.toString().includes('revert'), error.toString());
-            }
-        });
-
-        it('Should not be able to set the eth price to 0', async function () {
-            try {
-
-                await tokenSaleContract.setEthPrice(0);
-                assert.fail();
-            } catch (error) {
-                assert(error.toString().includes('revert'), error.toString());
-            }
-        });
-
         it('should allow to add people to the whitelist', async function () {
             await tokenSaleContract.addToWhitelist([contributor]);
             assert.equal(await tokenSaleContract.checkWhitelisted(contributor), true);
@@ -225,21 +184,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             assert.equal(await tokenSaleContract.checkWhitelisted(contributor), false);
         });
 
-        it('should not allow to mint tokens if buy price isn\'t set', async function () {
-            try {
-                await tokenSaleContract.sendTransaction({
-                    value: 1 * ETH,
-                    from: whitelistedInPresale
-                });
-                assert.fail();
-            } catch (error) {
-                assert(error.toString().includes('revert'), error.toString());
-            }
-        });
-
         it('should not accept funds from people not whitelisted', async function () {
-            await tokenSaleContract.setEthPrice(ETH_PRICE);
-
             try {
                 await tokenSaleContract.sendTransaction({
                     value: 10 * ETH,
@@ -252,8 +197,6 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
         });
 
         it('should not allow contributions < 1 ETH during presale', async function () {
-            await tokenSaleContract.setEthPrice(ETH_PRICE);
-
             try {
                 await tokenSaleContract.sendTransaction({
                     value: 0.8 * ETH,
@@ -267,7 +210,6 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
 
         it('should allow to mint tokens if buy price is set', async function () {
             contributingEth = 1;
-            await tokenSaleContract.setEthPrice(ETH_PRICE);
             var buyPrice = await tokenSaleContract.baseBuyPrice();
             await tokenSaleContract.sendTransaction({
                 value: contributingEth * ETH,
@@ -281,7 +223,6 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
 
         it('should create a timelock tokenSaleContract for bonus tokens', async function () {
             contributingEth = 1;
-            await tokenSaleContract.setEthPrice(ETH_PRICE);
             var buyPrice = await tokenSaleContract.baseBuyPrice();
             await tokenSaleContract.sendTransaction({
                 value: contributingEth * ETH,
@@ -298,7 +239,6 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
 
         it('should not create two timelock tokenSaleContracts for the same contributor', async function () {
             contributingEth = 1;
-            await tokenSaleContract.setEthPrice(ETH_PRICE);
             var buyPrice = await tokenSaleContract.baseBuyPrice();
             await tokenSaleContract.sendTransaction({
                 value: contributingEth * ETH,
@@ -322,7 +262,6 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
         });
 
         it('should not allow to mint more tokens than presale hardcap', async function () {
-            await tokenSaleContract.setEthPrice(ETH_PRICE);
             try {
                 await tokenSaleContract.sendTransaction({
                     value: 81 * ETH,
@@ -335,7 +274,6 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
         });
 
         it('should allow to mint exactly the presale hard cap, considering the bonus', async function () {
-            await tokenSaleContract.setEthPrice(ETH_PRICE);
             var buyPrice = await tokenSaleContract.baseBuyPrice();
             var weiToContributeToReachPresaleHardCap = 80 * ETH;
             await tokenSaleContract.sendTransaction({
@@ -348,7 +286,6 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
         });
 
         it('should not allow to contribute after the hardcap is reached in the presale', async function () {
-            await tokenSaleContract.setEthPrice(ETH_PRICE);
             var weiToContributeToReachPresaleHardCap = 80 * ETH;
             await tokenSaleContract.sendTransaction({
                 value: weiToContributeToReachPresaleHardCap,
@@ -367,7 +304,6 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
         });
 
         it('should allow to contribute after the hardcap is reached in the presale if the phase is now the sale', async function () {
-            await tokenSaleContract.setEthPrice(ETH_PRICE);
             var buyPrice = await tokenSaleContract.baseBuyPrice();
             var weiToContributeToReachPresaleHardCap = 80 * ETH;
             await tokenSaleContract.sendTransaction({
@@ -395,7 +331,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
     contract('Pause phase', async function () {
         it('should be able to pause the sale after presale', async function () {
             await tokenSaleContract.setPhase(1);
-            assert.equal(await tokenSaleContract.getCurrentPhase(), 1);
+            assert.equal(await tokenSaleContract.phase(), 1);
         });
 
         it('should not be able to contribute during the pause', async function () {
@@ -417,35 +353,6 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             await tokenSaleContract.setIndividualWeiCap(1 * ETH);
             assert.equal(await tokenSaleContract.getIndividualWeiCap(), 1 * ETH);
         });
-
-        it('Should be able to set the eth price multiple times', async function () {
-            await setContractToPausePhase();
-            await tokenSaleContract.setEthPrice(10);
-            await tokenSaleContract.setEthPrice(50);
-            await tokenSaleContract.setEthPrice(100);
-
-            await tokenSaleContract.setEthPrice(ETH_PRICE);
-            var weiHardCap = await tokenSaleContract.weiHardCap();
-            // the hardcap is the amount of wei needed to raise 9 500 000 $
-            assert.equal(weiHardCap, (9500000 / ETH_PRICE) * ETH);
-            // the soft cap is 26% of the hardcap
-            assert.equal(await tokenSaleContract.weiSoftCap(), weiHardCap * 0.26);
-            // the presale cap is 80% of the hardcap
-            assert.equal(await tokenSaleContract.weiPresaleCap(), weiHardCap * 0.8);
-            // the tokenBuyPrice is set using the value 0.05$ / token
-            assert.equal(await tokenSaleContract.baseBuyPrice(), ETH_PRICE / 0.05);
-        });
-
-        it('Should not be able to set the eth price to 0', async function () {
-            await setContractToPausePhase();
-            try {
-
-                await tokenSaleContract.setEthPrice(0);
-                assert.fail();
-            } catch (error) {
-                assert(error.toString().includes('revert'), error.toString());
-            }
-        });
     });
 
     contract('Safe Mainsale', async function () {
@@ -461,7 +368,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
 
         it('should be able to set individual cap & start safe mainsale', async function () {
             await setContractToSafeMainSale();
-            assert.equal(await tokenSaleContract.getCurrentPhase(), 2);
+            assert.equal(await tokenSaleContract.phase(), 2);
         });
 
         it('should not be able to contribute more than individual cap in the first 12 hours', async function () {
@@ -507,7 +414,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
                 from: whitelistedInPresale
             });
 
-            assert.equal(await tokenSaleContract.getCurrentPhase(), 3);
+            assert.equal(await tokenSaleContract.phase(), 3);
         });
 
         it('should be able to contribute more than individual cap after 12 hours', async function () {
@@ -569,7 +476,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
                 from: whitelistedInPresale
             });
 
-            assert.equal(await tokenSaleContract.getCurrentPhase(), 4);
+            assert.equal(await tokenSaleContract.phase(), 4);
         });
     });
 
@@ -647,30 +554,6 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             }
         });
 
-        it('should not allow owner to claim ether on the tokenSaleContract as long as the sale is not finished even if the soft cap is reached and the sale is over', async function () {
-            await setContractToMainSale();
-
-            // reach the soft cap
-            await tokenSaleContract.sendTransaction({
-                value: await tokenSaleContract.weiSoftCap(),
-                from: whitelistedInPresale
-            });
-
-            web3.currentProvider.sendAsync({
-                jsonrpc: "2.0",
-                method: "evm_increaseTime",
-                params: [(3600 * 24 * 21) + 1],
-                id: 12345
-            }, function (err, result) {});
-
-            try {
-                await tokenSaleContract.withdraw();
-                assert.fail();
-            } catch (error) {
-                assert(error.toString().includes('revert'), error.toString());
-            }
-        });
-
         it('should not allow to mint more tokens than hardcap', async function () {
             await setContractToMainSale();
 
@@ -693,7 +576,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
                 from: whitelistedInPresale
             });
 
-            assert.equal(await tokenSaleContract.getCurrentPhase(), 4);
+            assert.equal(await tokenSaleContract.phase(), 4);
         });
 
         it('should not be able to activate token if mainsale is not over', async function () {
@@ -726,7 +609,7 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
             }, function (err, result) {});
 
             await tokenSaleContract.setPhase(4);
-            assert.equal(await tokenSaleContract.getCurrentPhase(), 4);
+            assert.equal(await tokenSaleContract.phase(), 4);
         });
 
         it('should not accept any contributions anymore', async function () {
@@ -876,8 +759,6 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
 
     contract('Softcap & Refund', async function () {
         it('should not allow people to claim refund during the presale', async function () {
-            await tokenSaleContract.setEthPrice(ETH_PRICE);
-
             const contributingEth = 1;
 
             await tokenSaleContract.sendTransaction({
@@ -897,8 +778,6 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
         });
 
         it('should not allow people to claim refund during the pause', async function () {
-            await tokenSaleContract.setEthPrice(ETH_PRICE);
-
             await tokenSaleContract.sendTransaction({
                 value: 1 * ETH,
                 from: whitelistedInPresale
@@ -1083,13 +962,11 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
 
         it('Should not allow presale contributor to claim their token before 90 days', async function () {
             var contributingEth = 30;
-            await tokenSaleContract.setEthPrice(ETH_PRICE);
             await tokenSaleContract.sendTransaction({
                 value: contributingEth * ETH,
                 from: whitelistedInPresale
             });
 
-            var tokenAddr = await tokenSaleContract.getTimelockContractAddress(whitelistedInPresale);
             // end the sale and activate the token but does not set the time after the 2019/01/01
             await setContractToMainSale();
 
@@ -1103,10 +980,9 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
 
             await tokenSaleContract.setPhase(4);
             await tokenSaleContract.activateToken();
-            var timelock = TokenTimelockContract.at(tokenAddr);
 
             try {
-                await timelock.release();
+                await tokenSaleContract.releaseLockedTokens(whitelistedInPresale);
                 assert.fail();
             } catch (error) {
                 assert(error.toString().includes('revert'), error.toString());
@@ -1115,15 +991,12 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
 
         it('Should allow presale contributor to claim their token after 90 days', async function () {
             contributingEth = 50;
-            await tokenSaleContract.setEthPrice(ETH_PRICE);
-            var buyPrice = await tokenSaleContract.baseBuyPrice();
             await tokenSaleContract.sendTransaction({
                 value: contributingEth * ETH,
                 from: whitelistedInPresale
             });
 
             var tokenAmountBeforeReleasingTokens = (await token.balanceOf(whitelistedInPresale)).toNumber();
-            var tokenAddr = await tokenSaleContract.getTimelockContractAddress(whitelistedInPresale);
 
             // end the sale and activate the token but does not set the time after the 2019/01/01
             await setContractToMainSale();
@@ -1138,7 +1011,6 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
 
             await tokenSaleContract.setPhase(4);
             await tokenSaleContract.activateToken();
-            var timelock = TokenTimelockContract.at(tokenAddr);
 
             // wait for 69 days because we already waited 21 weeks for the mainsale to finish
             // and the presale vesting is 90 days
@@ -1149,9 +1021,501 @@ contract('GalionToken', function ([owner, whitelistedInPresale, whitelistedInPau
                 id: 12345
             }, function (err, result) {});
 
-            await timelock.release();
+            
+            await tokenSaleContract.releaseLockedTokens(whitelistedInPresale);
 
             assert.equal((await token.balanceOf(whitelistedInPresale)).toNumber(), tokenAmountBeforeReleasingTokens * (1 + BONUS));
         });
+    });
+
+    contract('Worst case scenario : owner\'s  private key lost', async function () {
+        // lost private key just after the deployment...
+        it('Should allow refund if soft cap NOT reached and phase is still presale after 5 months', async function () {
+            contributingEth = 10;
+
+            await tokenSaleContract.sendTransaction({
+                value: contributingEth * ETH,
+                from: whitelistedInPresale
+            });
+
+            const tokenSaleContractBalanceAfterContributing = (web3.eth.getBalance(await tokenSaleContract.address)).toNumber();
+            assert.equal(tokenSaleContractBalanceAfterContributing, contributingEth * ETH);
+
+            const contributorBalanceAfterContributing = web3.eth.getBalance(whitelistedInPresale).toNumber();
+
+            // set the time in 5 months = 22 weeks
+            web3.currentProvider.sendAsync({
+                jsonrpc: "2.0",
+                method: "evm_increaseTime",
+                params: [(3600 * 24 * 7 * 22) + 1],
+                id: 12345
+            }, function (err, result) {});
+
+            // get refund, notWhitelisted ask for whitelistedInPresale, this way no fees is paid by whitelistedInPresale which would make auto testing difficult otherwise
+            // so, because whitelistedInPresale sent 10 ETH, his balance should be "contributorBalanceAfterContributing" + 10
+            await tokenSaleContract.refund(whitelistedInPresale, {
+                from: notWhitelisted
+            });
+            assert.equal(await tokenSaleContract.phase(), 4);
+
+            assert.equal(web3.eth.getBalance(whitelistedInPresale).toNumber(), contributorBalanceAfterContributing + contributingEth * ETH);
+            assert.equal(web3.eth.getBalance(await tokenSaleContract.address).toNumber(), tokenSaleContractBalanceAfterContributing - contributingEth * ETH);
+        });
+
+        it('Should allow refund if soft cap NOT reached and phase is still pause after 5 months', async function () {
+            contributingEth = 10;
+
+            await tokenSaleContract.sendTransaction({
+                value: contributingEth * ETH,
+                from: whitelistedInPresale
+            });
+
+            const tokenSaleContractBalanceAfterContributing = (web3.eth.getBalance(await tokenSaleContract.address)).toNumber();
+            assert.equal(tokenSaleContractBalanceAfterContributing, contributingEth * ETH);
+
+            const contributorBalanceAfterContributing = web3.eth.getBalance(whitelistedInPresale).toNumber();
+
+            await setContractToPausePhase();
+
+            // set the time in 5 months = 22 weeks
+            web3.currentProvider.sendAsync({
+                jsonrpc: "2.0",
+                method: "evm_increaseTime",
+                params: [(3600 * 24 * 7 * 22) + 1],
+                id: 12345
+            }, function (err, result) {});
+
+            // get refund, notWhitelisted ask for whitelistedInPresale, this way no fees is paid by whitelistedInPresale which would make auto testing difficult otherwise
+            // so, because whitelistedInPresale sent 10 ETH, his balance should be "contributorBalanceAfterContributing" + 10
+            await tokenSaleContract.refund(whitelistedInPresale, {
+                from: notWhitelisted
+            });
+
+            assert.equal(await tokenSaleContract.phase(), 4);
+
+            assert.equal(web3.eth.getBalance(whitelistedInPresale).toNumber(), contributorBalanceAfterContributing + contributingEth * ETH);
+            assert.equal(web3.eth.getBalance(await tokenSaleContract.address).toNumber(), tokenSaleContractBalanceAfterContributing - contributingEth * ETH);
+        });
+
+        it('Should allow refund if soft cap NOT reached and phase is still safe main sale after 5 months', async function () {
+            contributingEth = 10;
+
+            await tokenSaleContract.sendTransaction({
+                value: contributingEth * ETH,
+                from: whitelistedInPresale
+            });
+
+            const tokenSaleContractBalanceAfterContributing = (web3.eth.getBalance(await tokenSaleContract.address)).toNumber();
+            assert.equal(tokenSaleContractBalanceAfterContributing, contributingEth * ETH);
+
+            const contributorBalanceAfterContributing = web3.eth.getBalance(whitelistedInPresale).toNumber();
+
+            await setContractToSafeMainSale();
+
+            // set the time in 5 months = 22 weeks
+            web3.currentProvider.sendAsync({
+                jsonrpc: "2.0",
+                method: "evm_increaseTime",
+                params: [(3600 * 24 * 7 * 22) + 1],
+                id: 12345
+            }, function (err, result) {});
+
+            // get refund, notWhitelisted ask for whitelistedInPresale, this way no fees is paid by whitelistedInPresale which would make auto testing difficult otherwise
+            // so, because whitelistedInPresale sent 10 ETH, his balance should be "contributorBalanceAfterContributing" + 10
+            await tokenSaleContract.refund(whitelistedInPresale, {
+                from: notWhitelisted
+            });
+
+            assert.equal(await tokenSaleContract.phase(), 4);
+
+            assert.equal(web3.eth.getBalance(whitelistedInPresale).toNumber(), contributorBalanceAfterContributing + contributingEth * ETH);
+            assert.equal(web3.eth.getBalance(await tokenSaleContract.address).toNumber(), tokenSaleContractBalanceAfterContributing - contributingEth * ETH);
+        });
+
+        it('Should allow refund if soft cap NOT reached and phase is still main sale after 5 months', async function () {
+            contributingEth = 10;
+
+            await tokenSaleContract.sendTransaction({
+                value: contributingEth * ETH,
+                from: whitelistedInPresale
+            });
+
+            const tokenSaleContractBalanceAfterContributing = (web3.eth.getBalance(await tokenSaleContract.address)).toNumber();
+            assert.equal(tokenSaleContractBalanceAfterContributing, contributingEth * ETH);
+
+            const contributorBalanceAfterContributing = web3.eth.getBalance(whitelistedInPresale).toNumber();
+
+            await setContractToMainSale();
+
+            // set the time in 5 months = 22 weeks
+            web3.currentProvider.sendAsync({
+                jsonrpc: "2.0",
+                method: "evm_increaseTime",
+                params: [(3600 * 24 * 7 * 22) + 1],
+                id: 12345
+            }, function (err, result) {});
+
+            // get refund, notWhitelisted ask for whitelistedInPresale, this way no fees is paid by whitelistedInPresale which would make auto testing difficult otherwise
+            // so, because whitelistedInPresale sent 10 ETH, his balance should be "contributorBalanceAfterContributing" + 10
+            await tokenSaleContract.refund(whitelistedInPresale, {
+                from: notWhitelisted
+            });
+
+            assert.equal(await tokenSaleContract.phase(), 4);
+
+            assert.equal(web3.eth.getBalance(whitelistedInPresale).toNumber(), contributorBalanceAfterContributing + contributingEth * ETH);
+            assert.equal(web3.eth.getBalance(await tokenSaleContract.address).toNumber(), tokenSaleContractBalanceAfterContributing - contributingEth * ETH);
+        });
+
+        it('Should not allow refund if soft cap reached and phase is still presale after 5 months', async function () {
+            contributingEth = 50;
+
+            await tokenSaleContract.sendTransaction({
+                value: contributingEth * ETH,
+                from: whitelistedInPresale
+            });
+
+            // set the time in 5 months = 22 weeks
+            web3.currentProvider.sendAsync({
+                jsonrpc: "2.0",
+                method: "evm_increaseTime",
+                params: [(3600 * 24 * 7 * 22) + 1],
+                id: 12345
+            }, function (err, result) {});
+
+            try {
+                await tokenSaleContract.refund(whitelistedInPresale, {
+                    from: notWhitelisted
+                });
+            } catch (error) {
+                assert(error.toString().includes('revert'), error.toString());
+            }
+        });
+
+        it('Should not allow refund if soft cap reached and phase is still pause after 5 months', async function () {
+            contributingEth = 50;
+
+            await tokenSaleContract.sendTransaction({
+                value: contributingEth * ETH,
+                from: whitelistedInPresale
+            });
+
+            await setContractToPausePhase();
+            // set the time in 5 months = 22 weeks
+            web3.currentProvider.sendAsync({
+                jsonrpc: "2.0",
+                method: "evm_increaseTime",
+                params: [(3600 * 24 * 7 * 22) + 1],
+                id: 12345
+            }, function (err, result) {});
+
+            try {
+                await tokenSaleContract.refund(whitelistedInPresale, {
+                    from: notWhitelisted
+                });
+            } catch (error) {
+                assert(error.toString().includes('revert'), error.toString());
+            }
+        });
+        it('Should not allow refund if soft cap reached and phase is still safe main sale after 5 months', async function () {
+            contributingEth = 50;
+
+            await tokenSaleContract.sendTransaction({
+                value: contributingEth * ETH,
+                from: whitelistedInPresale
+            });
+
+            await setContractToSafeMainSale();
+            // set the time in 5 months = 22 weeks
+            web3.currentProvider.sendAsync({
+                jsonrpc: "2.0",
+                method: "evm_increaseTime",
+                params: [(3600 * 24 * 7 * 22) + 1],
+                id: 12345
+            }, function (err, result) {});
+
+            try {
+                await tokenSaleContract.refund(whitelistedInPresale, {
+                    from: notWhitelisted
+                });
+            } catch (error) {
+                assert(error.toString().includes('revert'), error.toString());
+            }
+        });
+
+        it('Should not allow refund if soft cap reached and phase is still main sale after 5 months', async function () {
+            contributingEth = 50;
+
+            await tokenSaleContract.sendTransaction({
+                value: contributingEth * ETH,
+                from: whitelistedInPresale
+            });
+
+            await setContractToMainSale();
+
+            // set the time in 5 months = 22 weeks
+            web3.currentProvider.sendAsync({
+                jsonrpc: "2.0",
+                method: "evm_increaseTime",
+                params: [(3600 * 24 * 7 * 22) + 1],
+                id: 12345
+            }, function (err, result) {});
+
+            try {
+                await tokenSaleContract.refund(whitelistedInPresale, {
+                    from: notWhitelisted
+                });
+            } catch (error) {
+                assert(error.toString().includes('revert'), error.toString());
+            }
+        });
+
+
+
+        it('Should allow withdraw and activate if soft cap reached and phase is still presale after 5 months', async function () {
+            contributingEth = 50;
+
+            await tokenSaleContract.sendTransaction({
+                value: contributingEth * ETH,
+                from: whitelistedInPresale
+            });
+
+            // set the time in 5 months = 22 weeks
+            web3.currentProvider.sendAsync({
+                jsonrpc: "2.0",
+                method: "evm_increaseTime",
+                params: [(3600 * 24 * 7 * 22) + 1],
+                id: 12345
+            }, function (err, result) {});
+
+            const companyBalance = (web3.eth.getBalance(await tokenSaleContract.COMPANY_ADDRESS())).toNumber();
+
+            await tokenSaleContract.withdraw({
+                from: notWhitelisted
+            });
+            
+            const companyBalanceAfterWithdraw = (web3.eth.getBalance(await tokenSaleContract.COMPANY_ADDRESS())).toNumber();
+            assert.equal(companyBalance + contributingEth * ETH, companyBalanceAfterWithdraw);
+
+            await tokenSaleContract.activateToken({
+                from: notWhitelisted
+            });
+            
+            assert.equal(await token.activated(), true);
+        });
+
+        it('Should allow withdraw and activate if soft cap reached and phase is still pause sale after 5 months', async function () {
+            contributingEth = 50;
+
+            await tokenSaleContract.sendTransaction({
+                value: contributingEth * ETH,
+                from: whitelistedInPresale
+            });
+
+            await setContractToPausePhase();
+
+            // set the time in 5 months = 22 weeks
+            web3.currentProvider.sendAsync({
+                jsonrpc: "2.0",
+                method: "evm_increaseTime",
+                params: [(3600 * 24 * 7 * 22) + 1],
+                id: 12345
+            }, function (err, result) {});
+
+            const companyBalance = (web3.eth.getBalance(await tokenSaleContract.COMPANY_ADDRESS())).toNumber();
+
+            await tokenSaleContract.withdraw({
+                from: notWhitelisted
+            });
+            
+            const companyBalanceAfterWithdraw = (web3.eth.getBalance(await tokenSaleContract.COMPANY_ADDRESS())).toNumber();
+            assert.equal(companyBalance + contributingEth * ETH, companyBalanceAfterWithdraw);
+
+            await tokenSaleContract.activateToken({
+                from: notWhitelisted
+            });
+
+            assert.equal(await token.activated(), true);
+        });
+
+        it('Should allow withdraw and activate if soft cap reached and phase is still safe main sale after 5 months', async function () {
+            contributingEth = 50;
+
+            await tokenSaleContract.sendTransaction({
+                value: contributingEth * ETH,
+                from: whitelistedInPresale
+            });
+
+            await setContractToSafeMainSale();
+
+            // set the time in 5 months = 22 weeks
+            web3.currentProvider.sendAsync({
+                jsonrpc: "2.0",
+                method: "evm_increaseTime",
+                params: [(3600 * 24 * 7 * 22) + 1],
+                id: 12345
+            }, function (err, result) {});
+
+            const companyBalance = (web3.eth.getBalance(await tokenSaleContract.COMPANY_ADDRESS())).toNumber();
+
+            await tokenSaleContract.withdraw({
+                from: notWhitelisted
+            });
+            
+            const companyBalanceAfterWithdraw = (web3.eth.getBalance(await tokenSaleContract.COMPANY_ADDRESS())).toNumber();
+            assert.equal(companyBalance + contributingEth * ETH, companyBalanceAfterWithdraw);
+            
+            await tokenSaleContract.activateToken({
+                from: notWhitelisted
+            });
+            
+            assert.equal(await token.activated(), true);
+        });
+
+        it('Should allow withdraw and activate if soft cap reached and phase is still main sale after 5 months', async function () {
+            contributingEth = 50;
+
+            await tokenSaleContract.sendTransaction({
+                value: contributingEth * ETH,
+                from: whitelistedInPresale
+            });
+
+            await setContractToMainSale();
+
+            // set the time in 5 months = 22 weeks
+            web3.currentProvider.sendAsync({
+                jsonrpc: "2.0",
+                method: "evm_increaseTime",
+                params: [(3600 * 24 * 7 * 22) + 1],
+                id: 12345
+            }, function (err, result) {});
+
+            const companyBalance = (web3.eth.getBalance(await tokenSaleContract.COMPANY_ADDRESS())).toNumber();
+
+            await tokenSaleContract.withdraw({
+                from: notWhitelisted
+            });
+            
+            const companyBalanceAfterWithdraw = (web3.eth.getBalance(await tokenSaleContract.COMPANY_ADDRESS())).toNumber();
+            assert.equal(companyBalance + contributingEth * ETH, companyBalanceAfterWithdraw);
+            
+            await tokenSaleContract.activateToken({
+                from: notWhitelisted
+            });
+            
+            assert.equal(await token.activated(), true);
+        });
+
+        it('Should not allow withdraw if soft cap NOT reached and phase is still presale after 5 months', async function () {
+            contributingEth = 10;
+
+            await tokenSaleContract.sendTransaction({
+                value: contributingEth * ETH,
+                from: whitelistedInPresale
+            });
+
+            // set the time in 5 months = 22 weeks
+            web3.currentProvider.sendAsync({
+                jsonrpc: "2.0",
+                method: "evm_increaseTime",
+                params: [(3600 * 24 * 7 * 22) + 1],
+                id: 12345
+            }, function (err, result) {});
+
+
+            try {
+                await tokenSaleContract.withdraw({
+                    from: notWhitelisted
+                });
+                assert.fail();
+            } catch (error) {
+                assert(error.toString().includes('revert'), error.toString());
+            }
+        });
+
+        it('Should not allow withdraw if soft cap NOT reached and phase is still pause after 5 months', async function () {
+            contributingEth = 10;
+
+            await tokenSaleContract.sendTransaction({
+                value: contributingEth * ETH,
+                from: whitelistedInPresale
+            });
+
+            await setContractToPausePhase();
+
+            // set the time in 5 months = 22 weeks
+            web3.currentProvider.sendAsync({
+                jsonrpc: "2.0",
+                method: "evm_increaseTime",
+                params: [(3600 * 24 * 7 * 22) + 1],
+                id: 12345
+            }, function (err, result) {});
+
+
+            try {
+                await tokenSaleContract.withdraw({
+                    from: notWhitelisted
+                });
+                assert.fail();
+            } catch (error) {
+                assert(error.toString().includes('revert'), error.toString());
+            }
+        });
+
+        it('Should not allow withdraw if soft cap NOT reached and phase is still safe main sale after 5 months', async function () {
+            contributingEth = 10;
+            await tokenSaleContract.sendTransaction({
+                value: contributingEth * ETH,
+                from: whitelistedInPresale
+            });
+
+            await setContractToSafeMainSale();
+            // set the time in 5 months = 22 weeks
+            web3.currentProvider.sendAsync({
+                jsonrpc: "2.0",
+                method: "evm_increaseTime",
+                params: [(3600 * 24 * 7 * 22) + 1],
+                id: 12345
+            }, function (err, result) {});
+
+
+            try {
+                await tokenSaleContract.withdraw({
+                    from: notWhitelisted
+                });
+                assert.fail();
+            } catch (error) {
+                assert(error.toString().includes('revert'), error.toString());
+            }
+        });
+
+        it('Should not allow withdraw if soft cap NOT reached and phase is still main sale after 5 months', async function () {
+            contributingEth = 10;
+            await tokenSaleContract.sendTransaction({
+                value: contributingEth * ETH,
+                from: whitelistedInPresale
+            });
+
+            await setContractToMainSale();
+
+            // set the time in 5 months = 22 weeks
+            web3.currentProvider.sendAsync({
+                jsonrpc: "2.0",
+                method: "evm_increaseTime",
+                params: [(3600 * 24 * 7 * 22) + 1],
+                id: 12345
+            }, function (err, result) {});
+
+
+            try {
+                await tokenSaleContract.withdraw({
+                    from: notWhitelisted
+                });
+                assert.fail();
+            } catch (error) {
+                assert(error.toString().includes('revert'), error.toString());
+            }
+        });
+
     });
 });
